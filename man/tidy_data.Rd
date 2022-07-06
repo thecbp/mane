@@ -4,7 +4,7 @@
 \alias{tidy_data}
 \title{Function for converting Stan-friendly data to be more tidyverse friendly}
 \usage{
-tidy_data(standata, n_obvs)
+tidy_data(standata)
 }
 \arguments{
 \item{standata}{List containing the data that was}
