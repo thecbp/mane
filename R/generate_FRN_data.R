@@ -22,9 +22,6 @@ generate_FRN_data = function(n_subj,
                              betas,
                              y_sigma) {
 
-  # Function for generating data for fixed randomization N-of-1
-
-
   # Setting up parameters
   N = n_subj * n_cycles * n_trts * n_obvs # total sample size of overall trial
   y = id = period = cyc = array(0, N)     # initializing data structures
