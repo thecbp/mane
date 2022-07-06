@@ -7,7 +7,7 @@
 #' @internal
 #'
 #' @examples
-tidy_data = function(standata, n_obvs) {
+tidy_data = function(standata) {
 
   data = standata$X %>% as.data.frame() %>% as_tibble()
   N = standata$N

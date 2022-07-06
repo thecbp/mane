@@ -8,7 +8,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma,
   current_data = generate_FRN_data(n_subj, n_trts, n_cycles = 1, n_obvs, betas, y_sigma)
 
   # Storing data in tidy format, keeping for storing incoming data
-  trial_data = tidy_data(current_data, n_obvs = n_obvs)
+  trial_data = tidy_data(current_data)
 
   # Generating posterior samples after initial cycle
   stan_model = mcmc_agg(current_data)
@@ -80,7 +80,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma,
 
     # Append data to ongoing trial information
     period_data = list(J = n_subj, K = n_trts, N = nn, X = X, y = y, id = id, period = period)
-    period_data_tidy = tidy_data(period_data, n_obvs = n_obvs)
+    period_data_tidy = tidy_data(period_data)
     trial_data = bind_rows(trial_data, period_data_tidy)
 
     current_data = list(J = n_subj, K = n_trts,

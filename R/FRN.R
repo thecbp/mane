@@ -38,18 +38,6 @@
 FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma,
                chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
 
-  # Fixed randomization N-of-1 posterior sampling
-
-  # n_subj:
-  # n_trts: number of treatments
-  # n_cycles: number of cycles
-  # n_obvs: number of observations per period
-  # betas: matrix containing regression coefficients for outcome by subject
-  # y_sigma: within-person standard deviation (noise in outcome model)
-  # chains: number of chains to use in MCMC
-  # warmup: number of observations to use to warmup the MCMC
-  # iter: how long the chains should go total
-
   # Entire trial is run on fixed randomization scheme
   current_data = generate_FRN_data(n_subj,
                                    n_trts,
@@ -62,6 +50,7 @@ FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma,
   trial_data = tidy_data(current_data, n_obvs = n_obvs)
 
   # Generating posterior samples after data collected for everyone in period
+  # Aggregate level analysis to get the population level effects
   stan_model = mcmc_agg(current_data, chains = chains, warmup = warmup, iter = iter,
                         adapt_delta = adapt_delta, max_treedepth = max_treedepth)
 
@@ -74,7 +63,6 @@ FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma,
     data = trial_data,
     stan_model = stan_model
   )
-
 
 }
 
