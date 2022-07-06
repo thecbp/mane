@@ -1,8 +1,8 @@
 #' Simulate a fixed randomization design for a multi-arm N-of-1 trial
 #'
-#' @param n_subj
-#' @param n_trts
-#' @param n_cycles
+#' @param n_subj Integer indicating number of subjects in trial
+#' @param n_trts Integer indicating number of treatments in trial
+#' @param n_periods
 #' @param n_obvs
 #' @param betas
 #' @param y_sigma
@@ -16,12 +16,12 @@
 #' @export
 #'
 #' @examples
-FRN = function(n_subj, n_trts, n_cycles, n_obvs, betas, y_sigma,
+FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma,
                chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
 
   # Fixed randomization N-of-1 posterior sampling
 
-  # n_subj: number of subjects in trial
+  # n_subj:
   # n_trts: number of treatments
   # n_cycles: number of cycles
   # n_obvs: number of observations per period
@@ -34,7 +34,7 @@ FRN = function(n_subj, n_trts, n_cycles, n_obvs, betas, y_sigma,
   # Entire trial is run on fixed randomization scheme
   current_data = generate_FRN_data(n_subj,
                                    n_trts,
-                                   n_cycles,
+                                   n_periods,
                                    n_obvs,
                                    betas,
                                    y_sigma)
@@ -48,7 +48,7 @@ FRN = function(n_subj, n_trts, n_cycles, n_obvs, betas, y_sigma,
 
   list(
     n_subj = n_subj,
-    n_cycles = n_cycles,
+    n_periods = n_periods,
     n_obvs = n_obvs,
     betas = betas,
     y_sigma = y_sigma,

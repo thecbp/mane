@@ -2,7 +2,7 @@
 #'
 #' @param n_subj Number of subjects to include in trial
 #' @param n_trts Number of treatments to be considered
-#' @param n_cycles Number of cycles, each one contains n_trts periods
+#' @param n_periods Number of treatments periods
 #' @param n_obvs Number of observations made during a treatment period
 #' @param betas Treatment effects for each of the n_trts treatments
 #' @param y_sigma Within-individual noise of continuous outcome
@@ -19,21 +19,21 @@
 #'                                  n_obvs = 5, betas, y_sigma = 2)
 generate_FRN_data = function(n_subj,
                              n_trts,
-                             n_cycles,
+                             n_periods,
                              n_obvs,
                              betas,
                              y_sigma) {
 
   # Setting up parameters
-  N = n_subj * n_cycles * n_trts * n_obvs # total sample size of overall trial
-  y = id = period = cyc = array(0, N)     # initializing data structures
+  N = n_subj * n_periods * n_trts * n_obvs # total sample size of overall trial
+  y = id = period = array(0, N)            # initializing data structures
   X = array(0, N * n_trts) %>%
-    matrix(nrow = N, ncol = n_trts)       # Set up data matrix for treatments
-  iter = 1                                # global counter
+    matrix(nrow = N, ncol = n_trts)        # Set up data matrix for treatments
+  iter = 1                                 # global counter
 
   # Simulate data from fixed randomization scheme
   # For each treatment cycle...
-  for (cycle in 1:n_cycles) {
+  for (p in 1:n_periods) {
 
     # ... for each subject...
     for (i in 1:n_subj){
@@ -55,8 +55,7 @@ generate_FRN_data = function(n_subj,
           X[iter,] = x                                  # treatment vector
           y[iter] = x %*% betas[i,] + stats::rnorm(1, 0, y_sigma)  # outcome
           id[iter] = i                                  # subject ID
-          period[iter] = trt + n_trts * (cycle - 1)     # period
-          cyc[iter] = cycle                             # cycle
+          period[iter] = trt + n_trts * (p - 1)         # period number
 
           iter = iter + 1
         }
@@ -65,5 +64,11 @@ generate_FRN_data = function(n_subj,
   }
 
   # Make data usable for Stan
-  list(J = n_subj, K = n_trts, N = N, X = X, y = y, id = id, period = period)
+  list(J = n_subj,
+       K = n_trts,
+       N = N,
+       X = X,
+       y = y,
+       id = id,
+       period = period)
 }
