@@ -4,18 +4,18 @@
 \alias{generate_FRN_data}
 \title{Simulate a fixed randomization design for an N-of-1 trial}
 \usage{
-generate_FRN_data(n_subj, n_trts, n_cycles, n_obvs, betas, y_sigma)
+generate_FRN_data(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma)
 }
 \arguments{
 \item{n_subj}{Number of subjects to include in trial}
 
 \item{n_trts}{Number of treatments to be considered}
 
-\item{n_cycles}{Number of cycles, each one contains n_trts periods}
+\item{n_periods}{Number of treatments periods}
 
 \item{n_obvs}{Number of observations made during a treatment period}
 
-\item{betas}{Treatment effects for each of the n_trts treatments}
+\item{betas}{Matrix containing treatment effects for each individual (rows) and treatment (columns)}
 
 \item{y_sigma}{Within-individual noise of continuous outcome}
 }
@@ -26,6 +26,8 @@ A list with design parameters and observed treatment and outcomes
 Simulate a fixed randomization design for an N-of-1 trial
 }
 \examples{
+# Generate array of treatment effects
+# Rows are subjects, columns are treatments
 betas = array(1:6, dim = c(2, 3))
 current_data = generate_FRN_data(n_subj = 2, n_trts = 3, n_cycles = 1,
                                  n_obvs = 5, betas, y_sigma = 2)

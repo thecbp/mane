@@ -4,7 +4,7 @@
 #' @param c
 #'
 #' @return
-#' @export
+#' @internal
 #'
 #' @examples
 stabilize_probs = function(probs, c) {

@@ -4,7 +4,7 @@
 #' @param n_trts Number of treatments to be considered
 #' @param n_periods Number of treatments periods
 #' @param n_obvs Number of observations made during a treatment period
-#' @param betas Treatment effects for each of the n_trts treatments
+#' @param betas Matrix containing treatment effects for each individual (rows) and treatment (columns)
 #' @param y_sigma Within-individual noise of continuous outcome
 #'
 #' @return A list with design parameters and observed treatment and outcomes
