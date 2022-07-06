@@ -2,7 +2,7 @@
 % Please edit documentation in R/BAT.R
 \name{BAT}
 \alias{BAT}
-\title{Title}
+\title{Simulate an aggregated bandit design for a multi-arm N-of-1 trial (batched)}
 \usage{
 BAT(
   n_subj,
@@ -11,6 +11,7 @@ BAT(
   n_obvs,
   betas,
   y_sigma,
+  stanfile,
   chains,
   warmup,
   iter,
@@ -19,11 +20,63 @@ BAT(
 )
 }
 \arguments{
-\item{max_treedepth}{}
+\item{n_subj}{Integer indicating number of subjects in trial}
+
+\item{n_trts}{Integer indicating number of treatments in trial}
+
+\item{n_periods}{Integer indicating number of treatment periods in trial}
+
+\item{n_obvs}{Integer indicating how many observations should be recorded from a particular treatment regime}
+
+\item{betas}{Matrix containing treatment effects for each individual (rows) and treatment (columns)}
+
+\item{y_sigma}{Double indicating amount of within-person variance}
+
+\item{stanfile}{Character vector indicating path of Stan model (.stan)}
+
+\item{chains}{Integer indicating number of chains to use in MCMC}
+
+\item{warmup}{Integer indicating how long the warmup period for MCMC should be}
+
+\item{iter}{Integer indicating the total number of posterior samples to generate}
+
+\item{adapt_delta}{Integer indicating the step size for MCMC}
+
+\item{max_treedepth}{Integer indicating the maximum tree depth for MCMC}
 }
 \value{
-
+List containing the simulation parameters and resulting trial data that came from the parameters
 }
 \description{
-Title
+\code{BAT()} simulates an aggregated bandit design for a multi-arm N-of-1 trial.
+This design comes in two phases: a burn-in phase where all the treatments are
+gievn in a random order, and an adaptive phase where the next treatment
+randomized is chosen via Thompson Sampling. The allocation probabilities are
+calculated via the posterior probability of each treatment being optimal.
+}
+\details{
+In the batched aggregated bandit design, the posterior treatment effects are
+updated after all individual have finished a treatment period. It is assumed
+that estimating the population-level effects are of interest.
+}
+\examples{
+# Generating data for simulation
+set.seed(1)
+
+# Covariance between betas, factorized into scalar and correlation components
+tau = 2 * diag(3)
+Omega = diag(3)
+Omega[1,2] = Omega[2,1] = 0.1
+Omega[1,3] = Omega[3,1] = 0.1
+Omega[3,2] = Omega[2,3] = 0.1
+Sigma = tau \%*\% Omega \%*\% tau
+
+# Generating individual treatment effects from population level
+betas = MASS::mvrnorm(n = 2, mu = c(3, -2, 4), Sigma = Sigma)
+betas = round(betas, 1)
+stanfile = 'aggregated.stan'
+
+bat = BAT(n_subj = 2, n_cycles = 3, n_obvs = 5, n_trts = 3, y_sigma = 2,
+          satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
+          iter = 3000)
 }

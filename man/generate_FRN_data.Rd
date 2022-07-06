@@ -29,6 +29,6 @@ Simulate a fixed randomization design for an N-of-1 trial
 # Generate array of treatment effects
 # Rows are subjects, columns are treatments
 betas = array(1:6, dim = c(2, 3))
-current_data = generate_FRN_data(n_subj = 2, n_trts = 3, n_cycles = 1,
+current_data = generate_FRN_data(n_subj = 2, n_trts = 3, n_periods = 3,
                                  n_obvs = 5, betas, y_sigma = 2)
 }

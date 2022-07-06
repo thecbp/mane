@@ -1,22 +1,43 @@
 #' Title
 #'
-#' @param n_subj
-#' @param n_trts
-#' @param n_periods
-#' @param n_obvs
-#' @param betas
-#' @param y_sigma
-#' @param chains
-#' @param warmup
-#' @param iter
-#' @param adapt_delta
-#' @param max_treedepth
+#' `IND()` simulates an individual bandit design for a multi-arm N-of-1 trial.
+#' This design comes in two phases: a burn-in phase where all the treatments are
+#' gievn in a random order, and an adaptive phase where the next treatment
+#' randomized is chosen via Thompson Sampling. The allocation probabilities are
+#' calculated via the posterior probability of each treatment being optimal.
 #'
-#' @return
+#' In the individual bandit design, the posterior treatment effects are
+#' updated after all individual have finished a treatment period. It is assumed
+#' that estimating the individual-level effects are of interest.
+#'
+#' @inheritParams FRN
+#'
+#' @return List containing the simulation parameters and resulting trial data that came from the parameters
 #' @export
 #'
 #' @examples
-IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma,
+#' # Generating data for simulation
+#' set.seed(1)
+#'
+#' # Covariance between betas, factorized into scalar and correlation components
+#' tau = 2 * diag(3)
+#' Omega = diag(3)
+#' Omega[1,2] = Omega[2,1] = 0.1
+#' Omega[1,3] = Omega[3,1] = 0.1
+#' Omega[3,2] = Omega[2,3] = 0.1
+#' Sigma = tau %*% Omega %*% tau
+#'
+#' # Generating individual treatment effects from unique distributions
+#' betas = array(0, dim = c(2, 3))
+#' betas[1,] = MASS::mvrnorm(n = 1, mu = c(3, -2, 4), Sigma = Sigma)
+#' betas[2,] = MASS::mvrnorm(n = 1, mu = c(1, 0, 3), Sigma = Sigma)
+#' betas = round(betas, 1)
+#' stanfile = 'individual.stan'
+#'
+#' ind = IND(n_subj = 2, n_cycles = 3, n_obvs = 5, n_trts = 3, y_sigma = 2,
+#'           satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
+#'           iter = 3000)
+IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
                chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
 
   # Individualized design for multi-arm adaptive N-of-1
@@ -115,8 +136,9 @@ IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma,
   } # end of period loop
 
   # Final aggregated data on trial to understand population-level effects
-  agg_stan_model = mcmc_agg(current_data, chains = chains, warmup = warmup, iter = iter,
-                            adapt_delta = adapt_delta, max_treedepth = max_treedepth)
+  agg_stan_model = mcmc(stanfile, current_data, chains = chains, warmup = warmup,
+                        iter = iter, adapt_delta = adapt_delta,
+                        max_treedepth = max_treedepth)
 
   # Format allocation probability matrix for long format
   prob_df = tibble()

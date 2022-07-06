@@ -4,9 +4,12 @@
 #' @param n_obvs not needed?
 #'
 #' @return
-#' @internal
+#' @noRd
 #'
-#' @examples
+#' @example
+#' data = generate_FRN_data(n_subj = 2, n_trts = 3, n_periods = 3,
+#'                          n_obvs = 5, betas, y_sigma = 2)
+#' tidied = tidy_data(data)
 tidy_data = function(standata) {
 
   data = standata$X %>% as.data.frame() %>% as_tibble()
