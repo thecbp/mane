@@ -54,6 +54,7 @@ repeated for some number of cycles. At the end of the trial simulation, an
 analysis on the population level treatment effect is performed.
 }
 \examples{
+\dontrun{
 # Generating data for simulation
 set.seed(1)
 
@@ -73,4 +74,5 @@ stanfile = 'aggregated.stan'
 frn = FRN(n_subj = 2, n_cycles = 3, n_obvs = 5, n_trts = 3, y_sigma = 2,
           satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
           iter = 3000)
+}
 }

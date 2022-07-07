@@ -2,7 +2,7 @@
 % Please edit documentation in R/IND.R
 \name{IND}
 \alias{IND}
-\title{Title}
+\title{Simulate an individual bandit design for a multi-arm N-of-1 trial}
 \usage{
 IND(
   n_subj,
@@ -60,6 +60,7 @@ updated after all individual have finished a treatment period. It is assumed
 that estimating the individual-level effects are of interest.
 }
 \examples{
+\dontrun{
 # Generating data for simulation
 set.seed(1)
 
@@ -76,9 +77,10 @@ betas = array(0, dim = c(2, 3))
 betas[1,] = MASS::mvrnorm(n = 1, mu = c(3, -2, 4), Sigma = Sigma)
 betas[2,] = MASS::mvrnorm(n = 1, mu = c(1, 0, 3), Sigma = Sigma)
 betas = round(betas, 1)
-stanfile = 'individual.stan'
+stanfile = 'stan/model_ind.stan'
 
-ind = IND(n_subj = 2, n_cycles = 3, n_obvs = 5, n_trts = 3, y_sigma = 2,
-          satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
-          iter = 3000)
+# ind = IND(n_subj = 2, n_periods = 6, n_obvs = 5, n_trts = 3, y_sigma = 2,
+#           stanfile = stanfile, betas = betas, chains = 1, warmup = 1000,
+#           iter = 3000)
+}
 }

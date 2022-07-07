@@ -22,6 +22,7 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # Generating data for simulation
 #' set.seed(1)
 #'
@@ -41,6 +42,7 @@
 #' frn = FRN(n_subj = 2, n_cycles = 3, n_obvs = 5, n_trts = 3, y_sigma = 2,
 #'           satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
 #'           iter = 3000)
+#' }
 FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
                chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
 

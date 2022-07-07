@@ -60,11 +60,12 @@ updated after all individual have finished a treatment period. It is assumed
 that estimating the population-level effects are of interest.
 }
 \examples{
+\dontrun{
 # Generating data for simulation
 set.seed(1)
 
 # Covariance between betas, factorized into scalar and correlation components
-tau = 2 * diag(3)
+ = 2 * diag(3)
 Omega = diag(3)
 Omega[1,2] = Omega[2,1] = 0.1
 Omega[1,3] = Omega[3,1] = 0.1
@@ -74,9 +75,10 @@ Sigma = tau \%*\% Omega \%*\% tau
 # Generating individual treatment effects from population level
 betas = MASS::mvrnorm(n = 2, mu = c(3, -2, 4), Sigma = Sigma)
 betas = round(betas, 1)
-stanfile = 'aggregated.stan'
+stanfile = 'stan/model_agg.stan'
 
-bat = BAT(n_subj = 2, n_cycles = 3, n_obvs = 5, n_trts = 3, y_sigma = 2,
-          satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
-          iter = 3000)
+# bat = BAT(n_subj = 2, n_periods = 6, n_obvs = 5, n_trts = 3, y_sigma = 2,
+#           stanfile = stanfile, betas = betas, chains = 1, warmup = 1000,
+#           iter = 3000)
+}
 }

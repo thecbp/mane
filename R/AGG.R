@@ -16,7 +16,8 @@
 #' @export
 #'
 #' @examples
-#' #' # Generating data for simulation
+#' \dontrun{
+#' # Generating data for simulation
 #' set.seed(1)
 #'
 #' # Covariance between betas, factorized into scalar and correlation components
@@ -30,11 +31,12 @@
 #' # Generating individual treatment effects from population level
 #' betas = MASS::mvrnorm(n = 2, mu = c(3, -2, 4), Sigma = Sigma)
 #' betas = round(betas, 1)
-#' stanfile = 'aggregated.stan'
+#' stanfile = 'stan/model_agg.stan'
 #'
-#' agg = AGG(n_subj = 2, n_cycles = 3, n_obvs = 5, n_trts = 3, y_sigma = 2,
-#'           satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
-#'           iter = 3000)
+#' # agg = AGG(n_subj = 2, n_periods = 6, n_obvs = 5, n_trts = 3, y_sigma = 2,
+#' #           stanfile = stanfile, betas = betas, chains = 1, warmup = 1000,
+#' #           iter = 3000)
+#' }
 AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
                chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
 
@@ -42,13 +44,15 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
   # Same arguments as FRN()
 
   # Initial FRN phase data for burn-in
-  current_data = generate_FRN_data(n_subj, n_trts, n_cycles = 1, n_obvs, betas, y_sigma)
+  current_data = generate_FRN_data(n_subj, n_trts, n_periods = 1, n_obvs, betas, y_sigma)
 
   # Storing data in tidy format, keeping for storing incoming data
   trial_data = tidy_data(current_data)
 
   # Generating posterior samples after initial cycle
-  stan_model = mcmc_agg(current_data)
+  stan_model = mcmc(stanfile, current_data, chains = chains, warmup = warmup,
+                    iter = iter, adapt_delta = adapt_delta,
+                    max_treedepth = max_treedepth)
 
   # Index to start the loop, since n_trts have been used in FRN phase
   adaptive_start = n_trts + 1 # FRN requires one period from every treatment
@@ -106,7 +110,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
       for (z in 1:n_obvs) {
 
         X[global_iter,] = x                                  # treatment vector
-        y[global_iter] = x %*% betas[i,] + rnorm(1, 0, y_sigma)  # outcome
+        y[global_iter] = x %*% betas[i,] + stats::rnorm(1, 0, y_sigma)  # outcome
         id[global_iter] = i                                  # subject ID
         period[global_iter] = p                              # period
 
@@ -118,11 +122,11 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
     # Append data to ongoing trial information
     period_data = list(J = n_subj, K = n_trts, N = nn, X = X, y = y, id = id, period = period)
     period_data_tidy = tidy_data(period_data)
-    trial_data = bind_rows(trial_data, period_data_tidy)
+    trial_data = dplyr::bind_rows(trial_data, period_data_tidy)
 
     current_data = list(J = n_subj, K = n_trts,
                         N = nrow(trial_data),
-                        X = trial_data %>% select(contains("X")) %>% as.matrix,
+                        X = trial_data %>% dplyr::select(dplyr::contains("X")) %>% as.matrix,
                         y = trial_data$y,
                         id = trial_data$id,
                         period = trial_data$period)
@@ -136,13 +140,13 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
   } # end of period loop
 
   # Format allocation probability matrix for long format
-  prob_df = tibble()
+  prob_df = tibble::tibble()
   for (i in 1:dim(allocprobs)[1]) {
-    period_probs = allocprobs[i,,] %>% as_tibble()
+    period_probs = allocprobs[i,,] %>% tibble::as_tibble()
     colnames(period_probs) = paste0("p", 1:n_trts)
     period_probs$period = i
     period_probs$id = 1:n_subj
-    prob_df = bind_rows(prob_df, period_probs)
+    prob_df = dplyr::bind_rows(prob_df, period_probs)
   }
 
   list(
