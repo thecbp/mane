@@ -59,7 +59,8 @@ FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
 
   # Generating posterior samples after data collected for everyone in period
   # Aggregate level analysis to get the population level effects
-  stan_model = mcmc(stanfile, current_data, chains = chains, warmup = warmup,
+  stan_model = mcmc(file = stanfile, data = current_data,
+                    chains = chains, warmup = warmup,
                     iter = iter, adapt_delta = adapt_delta,
                     max_treedepth = max_treedepth)
 
