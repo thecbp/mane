@@ -19,7 +19,7 @@
 mcmc = function(stanfile, data, chains = 1, warmup = 1000, iter = 3000,
                 adapt_delta = 0.99, max_treedepth = 15) {
 
-  h_out = rstan::stan(file = stanfile, # file for aggregated analysis
+  h_out = rstan::stan(stanfile,
                       data = data,
                       chains = chains,         # number of Markov chains
                       warmup = warmup,         # number of warmup iterations per chain
@@ -27,7 +27,7 @@ mcmc = function(stanfile, data, chains = 1, warmup = 1000, iter = 3000,
                       refresh = 0,
                       verbose = TRUE,
                       control = list(adapt_delta = adapt_delta,
-                                      max_treedepth = max_treedepth))
+                                     max_treedepth = max_treedepth))
 
   h_out
 }
