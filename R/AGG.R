@@ -11,6 +11,7 @@
 #' estimating the population-level effects are of interest.
 #'
 #' @inheritParams FRN
+#' @param reward function indicating how to calculate reward based on parameters and data
 #'
 #' @return List containing the simulation parameters and resulting trial data that came from the parameters
 #' @export
@@ -37,7 +38,7 @@
 #' #           stanfile = stanfile, betas = betas, chains = 1, warmup = 1000,
 #' #           iter = 3000)
 #' }
-AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
+AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile, reward = reward,
                chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
 
   # Aggregated design for multi-arm adaptive N-of-1
@@ -87,7 +88,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
         # NOTE: Possible optimization here: matrix multiplication over all samples
 
         # Calculate expected reward in each arm for each subject
-        u = post_samp$Betas[s, i ,] %*% T_mat
+        u = reward(post_samp$Betas[s, i ,], T_mat)
         best_arm = which(u == max(u))
         I_trt[s, best_arm] = 1
 
