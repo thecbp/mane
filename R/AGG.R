@@ -38,7 +38,7 @@
 #' #           stanfile = stanfile, betas = betas, chains = 1, warmup = 1000,
 #' #           iter = 3000)
 #' }
-AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile, reward = reward,
+AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
                chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
 
   # Aggregated design for multi-arm adaptive N-of-1
@@ -69,7 +69,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile, rewa
     nn = n_subj * n_obvs                        # total obs. in period
     y = id = period = array(0, nn)              # data structures
     X = matrix(0, nrow = nn, ncol = n_trts)     # data treatment matrix
-    global_iter = 1                                    # global counter
+    global_iter = 1                             # global counter
 
     post_samp = rstan::extract(stan_model)
     S = dim(post_samp$Betas)[1]           # number of posterior samples
@@ -88,7 +88,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile, rewa
         # NOTE: Possible optimization here: matrix multiplication over all samples
 
         # Calculate expected reward in each arm for each subject
-        u = reward(post_samp$Betas[s, i ,], T_mat)
+        u = post_samp$Betas[s, i ,] %*% T_mat
         best_arm = which(u == max(u))
         I_trt[s, best_arm] = 1
 
