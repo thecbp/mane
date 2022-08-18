@@ -44,7 +44,19 @@
 #'           iter = 3000)
 #' }
 FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
-               chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
+               chains, warmup, iter, adapt_delta = 0.999, max_treedepth = 17) {
+
+  # Set up output object
+  output = list(
+    # Parameters used in the simulation
+    params = list(
+      n_subj = n_subj,
+      n_periods = n_periods,
+      n_obvs = n_obvs,
+      betas = betas,
+      y_sigma = y_sigma,
+    )
+  )
 
   # Entire trial is run on fixed randomization scheme
   current_data = generate_FRN_data(n_subj,
@@ -54,25 +66,23 @@ FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
                                    betas,
                                    y_sigma)
 
-  # Make the data easier to visualize
-  trial_data = tidy_data(current_data)
-
   # Generating posterior samples after data collected for everyone in period
   # Aggregate level analysis to get the population level effects
-  stan_model = mcmc(stanfile = stanfile, data = current_data,
-                    chains = chains, warmup = warmup,
-                    iter = iter, adapt_delta = adapt_delta,
-                    max_treedepth = max_treedepth)
-
-  list(
-    n_subj = n_subj,
-    n_periods = n_periods,
-    n_obvs = n_obvs,
-    betas = betas,
-    y_sigma = y_sigma,
-    data = trial_data,
-    stan_model = stan_model
+  posterior = rstanarm::stan_glmer(
+    y ~ V3 + V4 + (1 + V3 + V4|id),
+    data = data, family = gaussian,
+    prior_intercept = normal(100, 10),
+    prior = normal(0, 2.5),
+    prior_aux = exponential(1, autoscale = TRUE),
+    prior_covariance = decov(reg = 1, conc = 1, shape = 1, scale = 1),
+    chains = chains, iter = iter, seed = 1, adapt_delta = adapt_delta,
+    control = list(max_treedepth = max_treedepth)
   )
+
+  output$data = current_data
+  output$posterior = posterior
+
+  output
 
 }
 
