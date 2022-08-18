@@ -43,10 +43,10 @@ generate_FRN_data = function(n_subj,
 
   # Duplicate the matrix to match number of observations for each person
   full_trt_mat = trts_by_subj[rep(seq_len(nrow(trts_by_subj)), n_obvs),] %>%
-    as_tibble()
+    tibble::as_tibble()
 
   # Add subject level noise
-  full_trt_mat$Y = full_trt_mat$Y + rnorm(nrow(full_trt_mat), 0, y_sigma)
+  full_trt_mat$Y = full_trt_mat$Y + stats::rnorm(nrow(full_trt_mat), 0, y_sigma)
 
   full_trt_mat
 }

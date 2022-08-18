@@ -37,8 +37,7 @@
 #' # Generating individual treatment effects from population level
 #' betas = MASS::mvrnorm(n = 2, mu = c(3, -2, 4), Sigma = Sigma)
 #' betas = round(betas, 1)
-#' stanfile = 'aggregated.stan'
-#'
+#'1
 #' frn = FRN(n_subj = 2, n_cycles = 3, n_obvs = 5, n_trts = 3, y_sigma = 2,
 #'           satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
 #'           iter = 3000)
@@ -46,17 +45,7 @@
 FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
                chains, warmup, iter, adapt_delta = 0.999, max_treedepth = 17) {
 
-  # Set up output object
-  output = list(
-    # Parameters used in the simulation
-    params = list(
-      n_subj = n_subj,
-      n_periods = n_periods,
-      n_obvs = n_obvs,
-      betas = betas,
-      y_sigma = y_sigma,
-    )
-  )
+
 
   # Entire trial is run on fixed randomization scheme
   current_data = generate_FRN_data(n_subj,
@@ -70,23 +59,42 @@ FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
   # Build the formula for the hierarchical model
   ranef = paste0("X", 2:n_trts, collapse = " + ")
   fixed = paste0(" + (1 + ", ranef ,"|id)")       # assumes id indexes participant
-  model_formula = paste0("y ~ ", ranef, fixed)
+  model_formula = paste0("Y ~ ", ranef, fixed)
 
   # Generating posterior samples after data collected for everyone in period
   # Aggregate level analysis to get the population level effects
   posterior = rstanarm::stan_glmer(
     formula = model_formula,
-    data = data, family = gaussian,
-    prior_intercept = normal(100, 10),
-    prior = normal(0, 2.5),
-    prior_aux = exponential(1, autoscale = TRUE),
-    prior_covariance = decov(reg = 1, conc = 1, shape = 1, scale = 1),
+    data = current_data, family = "gaussian",
+    prior_intercept = rstanarm::normal(100, 10),
+    prior = rstanarm::normal(0, 2.5),
+    prior_aux = rstanarm::exponential(1, autoscale = TRUE),
+    prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
     chains = chains, iter = iter, seed = 1, adapt_delta = adapt_delta,
-    control = list(max_treedepth = max_treedepth)
+    control = list(max_treedepth = max_treedepth),
+    QR = T
   )
 
-  output$data = current_data
-  output$posterior = posterior
+  # Set up output object
+  output = list(
+    # Parameters used in the simulation
+    trial_params = list(
+      n_subj = n_subj,
+      n_periods = n_periods,
+      n_obvs = n_obvs,
+      betas = betas,
+      y_sigma = y_sigma
+    ),
+    stan_params = list(
+      chains = chains,
+      warmup = warmup,
+      iter = iter,
+      adapt_delta = adapt_delta,
+      max_treedepth = max_treedepth
+    ),
+    data = current_data,
+    posterior = posterior
+  )
 
   output
 
