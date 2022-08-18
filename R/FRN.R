@@ -66,10 +66,16 @@ FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
                                    betas,
                                    y_sigma)
 
+
+  # Build the formula for the hierarchical model
+  ranef = paste0("X", 2:n_trts, collapse = " + ")
+  fixed = paste0(" + (1 + ", ranef ,"|id)")       # assumes id indexes participant
+  model_formula = paste0("y ~ ", ranef, fixed)
+
   # Generating posterior samples after data collected for everyone in period
   # Aggregate level analysis to get the population level effects
   posterior = rstanarm::stan_glmer(
-    y ~ V3 + V4 + (1 + V3 + V4|id),
+    formula = model_formula,
     data = data, family = gaussian,
     prior_intercept = normal(100, 10),
     prior = normal(0, 2.5),

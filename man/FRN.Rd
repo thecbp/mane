@@ -15,8 +15,8 @@ FRN(
   chains,
   warmup,
   iter,
-  adapt_delta = 0.99,
-  max_treedepth = 15
+  adapt_delta = 0.999,
+  max_treedepth = 17
 )
 }
 \arguments{
