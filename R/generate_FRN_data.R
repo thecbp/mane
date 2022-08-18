@@ -30,13 +30,16 @@ generate_FRN_data = function(n_subj,
   colnames(trt) = paste0("X", 1:n_trts)
 
   # first n_subj elements come from first person
-  Y = (trt %*% t(betas))
+  Y = (trt %*% t(betas)) %>% c()
 
   # Replicate treatment matrix to number of subjects
   trts_by_subj = trt[rep(seq_len(nrow(trt)), n_subj),]
 
   # Append the outcome
-  trts_by_subj = cbind(id = rep(1:n_subj, each = n_trts), trts_by_subj, Y = c(Y))
+  trts_by_subj = cbind(id = rep(1:n_subj, each = n_trts),
+                       period = rep(1:n_subj, times = n_trts),
+                       trts_by_subj,
+                       Y = Y)
 
   # Duplicate the matrix to match number of observations for each person
   full_trt_mat = trts_by_subj[rep(seq_len(nrow(trts_by_subj)), n_obvs),] %>%
