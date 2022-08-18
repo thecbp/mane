@@ -41,9 +41,17 @@
 AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
                chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
 
-  # Aggregated design for multi-arm adaptive N-of-1
-  # Same arguments as FRN()
-
+  # Set up output object
+  output = list(
+    # Parameters used in the simulation
+    params = list(
+      n_subj = n_subj,
+      n_periods = n_periods,
+      n_obvs = n_obvs,
+      betas = betas,
+      y_sigma = y_sigma,
+    )
+  )
   # Initial FRN phase data for burn-in
   current_data = generate_FRN_data(n_subj, n_trts, n_periods = 1, n_obvs, betas, y_sigma)
 
@@ -150,6 +158,8 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
     prob_df = dplyr::bind_rows(prob_df, period_probs)
   }
 
+  output[["allocation"]] = prob_df
+
   list(
     n_subj = n_subj,
     n_periods = n_periods,
@@ -157,8 +167,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
     betas = betas,
     y_sigma = y_sigma,
     data = trial_data,
-    stan_model = stan_model,
-    allocprobs = prob_df
+    stan_model = stan_model
   )
 
 }

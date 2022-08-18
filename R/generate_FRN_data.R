@@ -24,51 +24,29 @@ generate_FRN_data = function(n_subj,
                              betas,
                              y_sigma) {
 
-  # Setting up parameters
-  N = n_subj * n_periods * n_trts * n_obvs # total sample size of overall trial
-  y = id = period = array(0, N)            # initializing data structures
-  X = array(0, N * n_trts) %>%
-    matrix(nrow = N, ncol = n_trts)        # Set up data matrix for treatments
-  iter = 1                                 # global counter
+  # Calculate outcome based on each of the treatments
+  trt = diag(n_trts)
+  trt[, 1] = 1
+  colnames(trt) = paste0("X", 1:n_trts)
 
-  # Simulate data from fixed randomization scheme
-  # For each treatment cycle...
-  for (p in 1:n_periods) {
+  # first n_subj elements come from first person
+  Y = (trt %*% t(betas)) %>% c()
 
-    # ... for each subject...
-    for (i in 1:n_subj){
+  # Replicate treatment matrix to number of subjects
+  trts_by_subj = trt[rep(seq_len(nrow(trt)), n_subj),]
 
-      # ... randomize treatment order for the cycle...
-      regime = sample(1:n_trts, size = n_trts, replace = F)
+  # Append the outcome
+  trts_by_subj = cbind(id = rep(1:n_subj, each = n_trts),
+                       period = rep(1:n_subj, times = n_trts),
+                       trts_by_subj,
+                       Y = Y)
 
-      # ... for each of their treatment periods...
-      for (trt in 1:n_trts) {
+  # Duplicate the matrix to match number of observations for each person
+  full_trt_mat = trts_by_subj[rep(seq_len(nrow(trts_by_subj)), n_obvs),] %>%
+    as_tibble()
 
-        # ... measure their outcome [n_obvs] times
-        for (z in 1:n_obvs) {
+  # Add subject level noise
+  full_trt_mat$Y = full_trt_mat$Y + rnorm(nrow(full_trt_mat), 0, y_sigma)
 
-          # Create treatment vector based on regime (1 where active, 0 else)
-          x = array(0, n_trts)
-          x[1] = 1              # intercept
-          x[regime[trt]] = 1    # setting treatment, if not control
-
-          X[iter,] = x                                  # treatment vector
-          y[iter] = x %*% betas[i,] + stats::rnorm(1, 0, y_sigma)  # outcome
-          id[iter] = i                                  # subject ID
-          period[iter] = trt + n_trts * (p - 1)         # period number
-
-          iter = iter + 1
-        }
-      }
-    }
-  }
-
-  # Make data usable for Stan
-  list(J = n_subj,
-       K = n_trts,
-       N = N,
-       X = X,
-       y = y,
-       id = id,
-       period = period)
+  full_trt_mat
 }

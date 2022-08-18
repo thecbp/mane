@@ -41,8 +41,17 @@
 BAT = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
                chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
 
-  # Batched Aggregated design for multi-arm adaptive N-of-1
-  # Same arguments as FRN()
+  # Set up output object
+  output = list(
+    # Parameters used in the simulation
+    params = list(
+      n_subj = n_subj,
+      n_periods = n_periods,
+      n_obvs = n_obvs,
+      betas = betas,
+      y_sigma = y_sigma,
+    )
+  )
 
   # Initial FRN phase data for burn-in
   current_data = generate_FRN_data(n_subj, n_trts, n_periods = 1, n_obvs, betas, y_sigma)
