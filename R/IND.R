@@ -101,7 +101,7 @@ IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
         best_arm = which(u == max(u))
         I_trt[s, best_arm] = 1
 
-      }
+      } # end of loop on posterior samples
 
       # Calculate allocation probabilities from above posterior rewards
       probs = apply(I_trt, 2, mean) # average the wins for each treatment arm

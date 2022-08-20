@@ -77,7 +77,6 @@ FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
 
   # Set up output object
   output = list(
-    # Parameters used in the simulation
     trial_params = list(
       n_subj = n_subj,
       n_periods = n_periods,

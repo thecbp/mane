@@ -41,133 +41,110 @@
 AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
                chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
 
-  # Set up output object
-  output = list(
-    # Parameters used in the simulation
-    params = list(
-      n_subj = n_subj,
-      n_periods = n_periods,
-      n_obvs = n_obvs,
-      betas = betas,
-      y_sigma = y_sigma,
-    )
-  )
+
   # Initial FRN phase data for burn-in
   current_data = generate_FRN_data(n_subj, n_trts, n_periods = 1, n_obvs, betas, y_sigma)
 
-  # Storing data in tidy format, keeping for storing incoming data
-  trial_data = tidy_data(current_data)
+  # Build the formula for the hierarchical model
+  ranef = paste0("X", 2:n_trts, collapse = " + ")
+  fixed = paste0(" + (1 + ", ranef ,"|id)")       # assumes id indexes participant
+  model_formula = paste0("Y ~ ", ranef, fixed)
 
-  # Generating posterior samples after initial cycle
-  stan_model = mcmc(stanfile, current_data, chains = chains, warmup = warmup,
-                    iter = iter, adapt_delta = adapt_delta,
-                    max_treedepth = max_treedepth)
+  # Generating posterior samples after data collected for everyone in period
+  # Aggregate level analysis to get the population level effects
+  posterior = rstanarm::stan_glmer(
+    formula = model_formula,
+    data = current_data, family = "gaussian",
+    prior_intercept = rstanarm::normal(100, 10),
+    prior = rstanarm::normal(0, 2.5),
+    prior_aux = rstanarm::exponential(1, autoscale = TRUE),
+    prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
+    chains = chains, iter = iter, seed = 1, adapt_delta = adapt_delta,
+    control = list(max_treedepth = max_treedepth),
+    QR = T
+  )
 
-  # Index to start the loop, since n_trts have been used in FRN phase
+  # Index to start the loop, since n_trts periods have been used in FRN phase
   adaptive_start = n_trts + 1 # FRN requires one period from every treatment
 
-  # Allocation probabilities matris
-  # Indexes: [period, subject, treatment probabilities]
-  allocprobs = array(0, dim = c(n_periods - n_trts, n_subj, n_trts))
+  # Calculate allocation probabilities bas
+  # function for outputting allocation probabilities for each person
+  # input: stan model, output: tibble of ids & allocation probabilites
+  current_probs = allocate_probabilities(posterior, n_trts)
+  current_probs$period = n_trts # By convention, just assign the last burn in period
 
-  # For each treatment cycle...
-  for (p in adaptive_start:n_periods) {
+  # Start collecting all of the allocation probabilities into one place
+  trial_probs = current_probs
 
-    # Data structures for a single individual's period
-    nn = n_subj * n_obvs                        # total obs. in period
-    y = id = period = array(0, nn)              # data structures
-    X = matrix(0, nrow = nn, ncol = n_trts)     # data treatment matrix
-    global_iter = 1                             # global counter
+  # Run a treatment period for each person, updating the model after the
+  # period has ended
+  for (p in seq(adaptive_start, n_periods)) {
 
-    post_samp = rstan::extract(stan_model)
-    S = dim(post_samp$Betas)[1]           # number of posterior samples
+    for (i in seq_len(n_subj)) {
 
-    # ... for each subject, calculate posterior allocation probabilities,
-    # assign treatment accordingly, and then generate data
-    for (i in 1:n_subj) {
-
-      # Thompson Sampling to update allocation probability from posterior betas
-      I_trt = matrix(0, S, n_trts)      # storing winning arms among all S samples
-      T_mat = create_trt_matrix(n_trts)
-
-      # Identifying the highest reward among all of the posterior samples
-      for (s in 1:S) {
-
-        # NOTE: Possible optimization here: matrix multiplication over all samples
-
-        # Calculate expected reward in each arm for each subject
-        u = post_samp$Betas[s, i ,] %*% T_mat
-        best_arm = which(u == max(u))
-        I_trt[s, best_arm] = 1
-
-      }
-
-      # Calculate allocation probabilities from above posterior rewards
-      probs = apply(I_trt, 2, mean) # average the wins for each treatment arm
-      c = (0.5) * (p / n_periods) # tuning parameter
-      stable_probs = stabilize_probs(probs, c)
-      allocprobs[(p - n_trts), i,] = stable_probs
-
+      id_probs = current_probs %>% filter(id == i)
 
       # Create treatment vector based on regime (1 where active, 0 else)
-      next_trt = sample(1:n_trts, size = 1, prob = stable_probs)
+      next_trt = sample(1:n_trts, size = 1,
+                        prob = id_probs %>% select(-id) %>% unlist)
       x = array(0, n_trts)
       x[1] = 1              # intercept
       x[next_trt] = 1       # setting next treatment
 
       # Generate observations for subject based on selected treatment for cycle
-      for (z in 1:n_obvs) {
+      id_obvs = matrix(x, nrow = n_obvs, ncol = 3, byrow = T)
+      colnames(id_obvs) = paste0("X", 1:n_trts)
+      id_y = (id_obvs %*% betas[i,]) + stats::rnorm(n_obvs, 0, y_sigma)
+      id_data = cbind(id = i, id_obvs, Y = id_y) %>% as_tibble
 
-        X[global_iter,] = x                                  # treatment vector
-        y[global_iter] = x %*% betas[i,] + stats::rnorm(1, 0, y_sigma)  # outcome
-        id[global_iter] = i                                  # subject ID
-        period[global_iter] = p                              # period
+      current_data = bind_rows(current_data, id_data)
 
-        global_iter = global_iter + 1
-      }
+      # Update the posterior distribution after observing these new values
+      posterior = rstanarm::stan_glmer(
+        formula = model_formula,
+        data = current_data, family = "gaussian",
+        prior_intercept = rstanarm::normal(100, 10),
+        prior = rstanarm::normal(0, 2.5),
+        prior_aux = rstanarm::exponential(1, autoscale = TRUE),
+        prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
+        chains = chains, iter = iter, seed = 1, adapt_delta = adapt_delta,
+        control = list(max_treedepth = max_treedepth),
+        QR = T
+      )
+
+      # Add the probabilities used for the individual into the set
+      # Need to do it now because it will possibly change with more data
+      id_probs$period = p
+      trial_probs = bind_rows(trial_probs, id_probs)
+
+      # Recalculate the allocation probabilities using the new data
+      current_probs = allocate_probabilities(posterior, n_trts)
 
     } # end of subject loop
 
-    # Append data to ongoing trial information
-    period_data = list(J = n_subj, K = n_trts, N = nn, X = X, y = y, id = id, period = period)
-    period_data_tidy = tidy_data(period_data)
-    trial_data = dplyr::bind_rows(trial_data, period_data_tidy)
-
-    current_data = list(J = n_subj, K = n_trts,
-                        N = nrow(trial_data),
-                        X = trial_data %>% dplyr::select(dplyr::contains("X")) %>% as.matrix,
-                        y = trial_data$y,
-                        id = trial_data$id,
-                        period = trial_data$period)
-
-    # Generating posterior samples after data collected for everyone in period
-    # Model here gives everyone their own prior, no aggregation
-    stan_model = mcmc(stanfile, current_data, chains = chains, warmup = warmup,
-                      iter = iter, adapt_delta = adapt_delta,
-                      max_treedepth = max_treedepth)
-
   } # end of period loop
 
-  # Format allocation probability matrix for long format
-  prob_df = tibble::tibble()
-  for (i in 1:dim(allocprobs)[1]) {
-    period_probs = allocprobs[i,,] %>% tibble::as_tibble()
-    colnames(period_probs) = paste0("p", 1:n_trts)
-    period_probs$period = i
-    period_probs$id = 1:n_subj
-    prob_df = dplyr::bind_rows(prob_df, period_probs)
-  }
-
-  output[["allocation"]] = prob_df
-
-  list(
-    n_subj = n_subj,
-    n_periods = n_periods,
-    n_obvs = n_obvs,
-    betas = betas,
-    y_sigma = y_sigma,
+  # Set up output object
+  output = list(
+    trial_params = list(
+      n_subj = n_subj,
+      n_periods = n_periods,
+      n_obvs = n_obvs,
+      betas = betas,
+      y_sigma = y_sigma
+    ),
+    stan_params = list(
+      chains = chains,
+      warmup = warmup,
+      iter = iter,
+      adapt_delta = adapt_delta,
+      max_treedepth = max_treedepth
+    ),
+    allocation = trial_probs,
     data = trial_data,
-    stan_model = stan_model
+    posterior = posterior
   )
+
+  output
 
 }
