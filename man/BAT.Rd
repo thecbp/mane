@@ -43,8 +43,6 @@ BAT(
 \item{adapt_delta}{Integer indicating the step size for MCMC}
 
 \item{max_treedepth}{Integer indicating the maximum tree depth for MCMC}
-
-\item{reward}{function indicating how to calculate reward based on parameters and data}
 }
 \value{
 List containing the simulation parameters and resulting trial data that came from the parameters

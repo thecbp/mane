@@ -11,7 +11,6 @@
 #' estimating the population-level effects are of interest.
 #'
 #' @inheritParams FRN
-#' @param reward function indicating how to calculate reward based on parameters and data
 #'
 #' @return List containing the simulation parameters and resulting trial data that came from the parameters
 #' @export
@@ -39,8 +38,10 @@
 #' #           iter = 3000)
 #' }
 AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
-               chains, warmup, iter, adapt_delta = 0.99, max_treedepth = 15) {
+               chains, warmup, iter, adapt_delta = 0.999, max_treedepth = 17) {
 
+  # Stopping the RMD CHECK for global variables
+  id = NULL
 
   # Initial FRN phase data for burn-in
   current_data = generate_FRN_data(n_subj, n_trts, n_periods = 1, n_obvs, betas, y_sigma)
@@ -67,7 +68,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
   # Index to start the loop, since n_trts periods have been used in FRN phase
   adaptive_start = n_trts + 1 # FRN requires one period from every treatment
 
-  # Calculate allocation probabilities bas
+  # Calculate allocation probabilities based on Thompson Sampling
   # function for outputting allocation probabilities for each person
   # input: stan model, output: tibble of ids & allocation probabilites
   current_probs = allocate_probabilities(posterior, n_trts)
@@ -82,11 +83,11 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
 
     for (i in seq_len(n_subj)) {
 
-      id_probs = current_probs %>% filter(id == i)
+      id_probs = current_probs %>% dplyr::filter(id == i)
 
       # Create treatment vector based on regime (1 where active, 0 else)
       next_trt = sample(1:n_trts, size = 1,
-                        prob = id_probs %>% select(-id) %>% unlist)
+                        prob = id_probs %>% dplyr::select(-id) %>% unlist)
       x = array(0, n_trts)
       x[1] = 1              # intercept
       x[next_trt] = 1       # setting next treatment
@@ -95,9 +96,9 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
       id_obvs = matrix(x, nrow = n_obvs, ncol = 3, byrow = T)
       colnames(id_obvs) = paste0("X", 1:n_trts)
       id_y = (id_obvs %*% betas[i,]) + stats::rnorm(n_obvs, 0, y_sigma)
-      id_data = cbind(id = i, id_obvs, Y = id_y) %>% as_tibble
+      id_data = cbind(id = i, id_obvs, Y = id_y) %>% tibble::as_tibble
 
-      current_data = bind_rows(current_data, id_data)
+      current_data = dplyr::bind_rows(current_data, id_data)
 
       # Update the posterior distribution after observing these new values
       posterior = rstanarm::stan_glmer(
@@ -115,7 +116,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
       # Add the probabilities used for the individual into the set
       # Need to do it now because it will possibly change with more data
       id_probs$period = p
-      trial_probs = bind_rows(trial_probs, id_probs)
+      trial_probs = dplyr::bind_rows(trial_probs, id_probs)
 
       # Recalculate the allocation probabilities using the new data
       current_probs = allocate_probabilities(posterior, n_trts)
@@ -141,7 +142,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
       max_treedepth = max_treedepth
     ),
     allocation = trial_probs,
-    data = trial_data,
+    data = current_data,
     posterior = posterior
   )
 

@@ -11,7 +11,6 @@
 #' that estimating the population-level effects are of interest.
 #'
 #' @inheritParams FRN
-#' @param reward function indicating how to calculate reward based on parameters and data
 #'
 #' @return List containing the simulation parameters and resulting trial data that came from the parameters
 #' @export
@@ -49,7 +48,7 @@ BAT = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
       n_periods = n_periods,
       n_obvs = n_obvs,
       betas = betas,
-      y_sigma = y_sigma,
+      y_sigma = y_sigma
     )
   )
 

@@ -69,8 +69,7 @@ Sigma = tau \%*\% Omega \%*\% tau
 # Generating individual treatment effects from population level
 betas = MASS::mvrnorm(n = 2, mu = c(3, -2, 4), Sigma = Sigma)
 betas = round(betas, 1)
-stanfile = 'aggregated.stan'
-
+1
 frn = FRN(n_subj = 2, n_cycles = 3, n_obvs = 5, n_trts = 3, y_sigma = 2,
           satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
           iter = 3000)

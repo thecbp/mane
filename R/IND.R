@@ -50,7 +50,7 @@ IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
       n_periods = n_periods,
       n_obvs = n_obvs,
       betas = betas,
-      y_sigma = y_sigma,
+      y_sigma = y_sigma
     )
   )
 
