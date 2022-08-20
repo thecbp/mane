@@ -1,12 +1,11 @@
 #' Reallocate the treatment randomization probabilities via Thompson Sampling
 #'
 #' @param posterior stanreg object that contains the posterior samples
-#' @
+#' @param n_trts integer indicating number of treatments currently in trial
 #'
-#' @return
+#' @return Dataframe containing the treatment allocation probabilities by id
 #' @export
 #'
-#' @examples
 allocate_probabilities = function(posterior, n_trts) {
 
   # Place posterior samples in a data frame
@@ -16,7 +15,7 @@ allocate_probabilities = function(posterior, n_trts) {
   # Back-calculating number of subjects from posterior dataframe
   n_subj = (ncol(samples) - (n_trts) - ((n_trts * (n_trts+1) * 0.5)) - 1) * (1/n_trts)
 
-  prob_df = tibble()
+  prob_df = tibble::tibble()
 
   # Iterate over all of the subjects
   for (i in seq_len(n_subj)) {
@@ -36,13 +35,13 @@ allocate_probabilities = function(posterior, n_trts) {
     optimal_arms = apply(posterior_outcomes, 2, find_max)
 
     probs = c(table(optimal_arms)) / S
-    prob_df = bind_rows(prob_df, c(id = i, probs))
+    prob_df = dplyr::bind_rows(prob_df, c(id = i, probs))
 
   }
 
   fill_list = list()
   for (t in seq_len(n_trts)) fill_list[[as.character(t)]] = 0
-  prob_df %>% replace_na(replace = fill_list)
+  prob_df %>% tidyr::replace_na(replace = fill_list)
 
 
   # Potential TODO: place the stabilization here as well

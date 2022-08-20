@@ -15,8 +15,8 @@ AGG(
   chains,
   warmup,
   iter,
-  adapt_delta = 0.99,
-  max_treedepth = 15
+  adapt_delta = 0.999,
+  max_treedepth = 17
 )
 }
 \arguments{
@@ -43,8 +43,6 @@ AGG(
 \item{adapt_delta}{Integer indicating the step size for MCMC}
 
 \item{max_treedepth}{Integer indicating the maximum tree depth for MCMC}
-
-\item{reward}{function indicating how to calculate reward based on parameters and data}
 }
 \value{
 List containing the simulation parameters and resulting trial data that came from the parameters
