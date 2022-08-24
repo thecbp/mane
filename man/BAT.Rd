@@ -32,8 +32,6 @@ BAT(
 
 \item{y_sigma}{Double indicating amount of within-person variance}
 
-\item{stanfile}{Character vector indicating path of Stan model (.stan)}
-
 \item{chains}{Integer indicating number of chains to use in MCMC}
 
 \item{warmup}{Integer indicating how long the warmup period for MCMC should be}

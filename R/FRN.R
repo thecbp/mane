@@ -11,7 +11,6 @@
 #' @param n_obvs Integer indicating how many observations should be recorded from a particular treatment regime
 #' @param betas Matrix containing treatment effects for each individual (rows) and treatment (columns)
 #' @param y_sigma Double indicating amount of within-person variance
-#' @param stanfile Character vector indicating path of Stan model (.stan)
 #' @param chains Integer indicating number of chains to use in MCMC
 #' @param warmup Integer indicating how long the warmup period for MCMC should be
 #' @param iter Integer indicating the total number of posterior samples to generate
@@ -42,7 +41,7 @@
 #'           satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
 #'           iter = 3000)
 #' }
-FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
+FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma,
                chains, warmup, iter, adapt_delta = 0.999, max_treedepth = 17) {
 
 

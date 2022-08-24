@@ -11,6 +11,7 @@
 #' estimating the population-level effects are of interest.
 #'
 #' @inheritParams FRN
+#' @param optimize character indicating "max" or "min". Describes what the allocation probabilities should be optimized on
 #'
 #' @return List containing the simulation parameters and resulting trial data that came from the parameters
 #' @export
@@ -37,12 +38,14 @@
 #' #           stanfile = stanfile, betas = betas, chains = 1, warmup = 1000,
 #' #           iter = 3000)
 #' }
-AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
-               chains, warmup, iter, adapt_delta = 0.999, max_treedepth = 17) {
+AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "max",
+               chains,  iter, adapt_delta = 0.999, max_treedepth = 17) {
 
   # Stopping the RMD CHECK for global variables
   id = NULL
 
+
+  print("Burn in period")
   # Initial FRN phase data for burn-in
   current_data = generate_FRN_data(n_subj, n_trts, n_periods = 1, n_obvs, betas, y_sigma)
 
@@ -71,7 +74,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
   # Calculate allocation probabilities based on Thompson Sampling
   # function for outputting allocation probabilities for each person
   # input: stan model, output: tibble of ids & allocation probabilites
-  current_probs = allocate_probabilities(posterior, n_trts)
+  current_probs = allocate_probabilities(posterior, n_trts, optimize = optimize)
   current_probs$period = n_trts # By convention, just assign the last burn in period
 
   # Start collecting all of the allocation probabilities into one place
@@ -81,22 +84,28 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
   # period has ended
   for (p in seq(adaptive_start, n_periods)) {
 
+    print(paste0("Starting period ", p))
+
     for (i in seq_len(n_subj)) {
 
       id_probs = current_probs %>% dplyr::filter(id == i)
 
       # Create treatment vector based on regime (1 where active, 0 else)
       next_trt = sample(1:n_trts, size = 1,
-                        prob = id_probs %>% dplyr::select(-id) %>% unlist)
+                        prob = id_probs %>% dplyr::select(starts_with("X")) %>%
+                          unlist)
       x = array(0, n_trts)
       x[1] = 1              # intercept
       x[next_trt] = 1       # setting next treatment
 
       # Generate observations for subject based on selected treatment for cycle
       id_obvs = matrix(x, nrow = n_obvs, ncol = 3, byrow = T)
-      colnames(id_obvs) = paste0("X", 1:n_trts)
       id_y = (id_obvs %*% betas[i,]) + stats::rnorm(n_obvs, 0, y_sigma)
-      id_data = cbind(id = i, id_obvs, Y = id_y) %>% tibble::as_tibble
+      id_data = tibble::as_tibble(id_obvs, Y = id_y, id = i) %>%
+        select(id, startsWith("X"), Y)
+      colnames(id_data) = c("id",
+                            paste0("X", 1:n_trts),
+                            "Y")
 
       current_data = dplyr::bind_rows(current_data, id_data)
 
@@ -136,7 +145,6 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, stanfile,
     ),
     stan_params = list(
       chains = chains,
-      warmup = warmup,
       iter = iter,
       adapt_delta = adapt_delta,
       max_treedepth = max_treedepth
