@@ -11,7 +11,6 @@ FRN(
   n_obvs,
   betas,
   y_sigma,
-  stanfile,
   chains,
   warmup,
   iter,
@@ -31,8 +30,6 @@ FRN(
 \item{betas}{Matrix containing treatment effects for each individual (rows) and treatment (columns)}
 
 \item{y_sigma}{Double indicating amount of within-person variance}
-
-\item{stanfile}{Character vector indicating path of Stan model (.stan)}
 
 \item{chains}{Integer indicating number of chains to use in MCMC}
 

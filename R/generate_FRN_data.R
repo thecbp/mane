@@ -24,29 +24,20 @@ generate_FRN_data = function(n_subj,
                              betas,
                              y_sigma) {
 
-  # Calculate outcome based on each of the treatments
+  # Matrix of single person getting all of the treatments for n_obvs each
   trt = diag(n_trts)
   trt[, 1] = 1
   colnames(trt) = paste0("X", 1:n_trts)
+  trt = trt[rep(seq_len(nrow(trt)), each = n_obvs),] # single design matrix
+  X = trt[rep(seq_len(nrow(trt)), each = n_subj),] # matrices for each person
 
-  # first n_subj elements come from first person
-  Y = (trt %*% t(betas)) %>% c()
+  # Calculate outcome with given betas (column is person, row is outcome for first obvs)
+  # Also adding within-subject noise
+  Y = ((trt %*% t(betas)) %>% c()) + stats::rnorm(nrow(X), 0, y_sigma)
 
-  # Replicate treatment matrix to number of subjects
-  trts_by_subj = trt[rep(seq_len(nrow(trt)), n_subj),]
+  id = rep(1:n_subj, times = n_obvs * n_trts)
 
-  # Append the outcome
-  trts_by_subj = cbind(id = rep(1:n_subj, each = n_trts),
-                       period = rep(1:n_subj, times = n_trts),
-                       trts_by_subj,
-                       Y = Y)
+  output = cbind(id = id, X, Y = Y) %>% tibble::as_tibble()
 
-  # Duplicate the matrix to match number of observations for each person
-  full_trt_mat = trts_by_subj[rep(seq_len(nrow(trts_by_subj)), n_obvs),] %>%
-    tibble::as_tibble()
-
-  # Add subject level noise
-  full_trt_mat$Y = full_trt_mat$Y + stats::rnorm(nrow(full_trt_mat), 0, y_sigma)
-
-  full_trt_mat
+  output
 }
