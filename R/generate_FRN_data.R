@@ -38,6 +38,7 @@ generate_FRN_data = function(n_subj,
   id = rep(1:n_subj, times = n_obvs * n_trts)
 
   output = cbind(id = id, X, Y = Y) %>% tibble::as_tibble()
+  output$period = rep(1:n_trts, each = n_subj)
 
   output
 }
