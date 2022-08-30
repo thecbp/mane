@@ -11,11 +11,12 @@ AGG(
   n_obvs,
   betas,
   y_sigma,
+  optimize = "max",
   chains,
-  warmup,
   iter,
   adapt_delta = 0.999,
-  max_treedepth = 17
+  max_treedepth = 17,
+  seed = 1
 )
 }
 \arguments{
@@ -31,15 +32,17 @@ AGG(
 
 \item{y_sigma}{Double indicating amount of within-person variance}
 
-\item{chains}{Integer indicating number of chains to use in MCMC}
+\item{optimize}{character indicating "max" or "min". Describes what the allocation probabilities should be optimized on}
 
-\item{warmup}{Integer indicating how long the warmup period for MCMC should be}
+\item{chains}{Integer indicating number of chains to use in MCMC}
 
 \item{iter}{Integer indicating the total number of posterior samples to generate}
 
 \item{adapt_delta}{Integer indicating the step size for MCMC}
 
 \item{max_treedepth}{Integer indicating the maximum tree depth for MCMC}
+
+\item{seed}{Integer indicating random seed to use}
 }
 \value{
 List containing the simulation parameters and resulting trial data that came from the parameters

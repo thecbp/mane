@@ -11,11 +11,13 @@ FRN(
   n_obvs,
   betas,
   y_sigma,
+  optimize = "max",
   chains,
   warmup,
   iter,
   adapt_delta = 0.999,
-  max_treedepth = 17
+  max_treedepth = 17,
+  seed = 1
 )
 }
 \arguments{
@@ -31,6 +33,8 @@ FRN(
 
 \item{y_sigma}{Double indicating amount of within-person variance}
 
+\item{optimize}{character indicating if the maximum or minimum reward should be optimized for}
+
 \item{chains}{Integer indicating number of chains to use in MCMC}
 
 \item{warmup}{Integer indicating how long the warmup period for MCMC should be}
@@ -40,6 +44,8 @@ FRN(
 \item{adapt_delta}{Integer indicating the step size for MCMC}
 
 \item{max_treedepth}{Integer indicating the maximum tree depth for MCMC}
+
+\item{seed}{Integer indicating random seed to use}
 }
 \value{
 List containing the simulation parameters and resulting trial data that came from the parameters

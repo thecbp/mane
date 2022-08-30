@@ -11,11 +11,13 @@
 #' @param n_obvs Integer indicating how many observations should be recorded from a particular treatment regime
 #' @param betas Matrix containing treatment effects for each individual (rows) and treatment (columns)
 #' @param y_sigma Double indicating amount of within-person variance
+#' @param optimize character indicating if the maximum or minimum reward should be optimized for
 #' @param chains Integer indicating number of chains to use in MCMC
 #' @param warmup Integer indicating how long the warmup period for MCMC should be
 #' @param iter Integer indicating the total number of posterior samples to generate
 #' @param adapt_delta Integer indicating the step size for MCMC
 #' @param max_treedepth Integer indicating the maximum tree depth for MCMC
+#' @param seed Integer indicating random seed to use
 #'
 #' @return List containing the simulation parameters and resulting trial data that came from the parameters
 #' @export
@@ -41,10 +43,8 @@
 #'           satnfile = stanfile, betas = betas, chains = 1, warmup = 1000,
 #'           iter = 3000)
 #' }
-FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma,
-               chains, warmup, iter, adapt_delta = 0.999, max_treedepth = 17) {
-
-
+FRN = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "max",
+               chains, warmup, iter, adapt_delta = 0.999, max_treedepth = 17, seed = 1) {
 
   # Entire trial is run on fixed randomization scheme
   current_data = generate_FRN_data(n_subj,

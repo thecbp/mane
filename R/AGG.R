@@ -11,7 +11,6 @@
 #' estimating the population-level effects are of interest.
 #'
 #' @inheritParams FRN
-#' @param optimize character indicating "max" or "min". Describes what the allocation probabilities should be optimized on
 #'
 #' @return List containing the simulation parameters and resulting trial data that came from the parameters
 #' @export
@@ -39,11 +38,13 @@
 #' #           iter = 3000)
 #' }
 AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "max",
-               chains,  iter, adapt_delta = 0.999, max_treedepth = 17) {
+               chains,  iter, adapt_delta = 0.999, max_treedepth = 17, seed = 1) {
 
   # Stopping the RMD CHECK for global variables
   id = NULL
 
+  # Storing the posterior samples for after each update
+  trial_posteriors = list()
 
   print("Burn in period")
   # Initial FRN phase data for burn-in
@@ -65,8 +66,11 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
     prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
     chains = chains, iter = iter, seed = 1, adapt_delta = adapt_delta,
     control = list(max_treedepth = max_treedepth),
+    refresh = 0,
     QR = T
   )
+
+  trial_posteriors[["burn"]] = as.data.frame(posterior)
 
   # Index to start the loop, since n_trts periods have been used in FRN phase
   adaptive_start = n_trts + 1 # FRN requires one period from every treatment
@@ -85,6 +89,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
   for (p in seq(adaptive_start, n_periods)) {
 
     print(paste0("Starting period ", p))
+    trial_posteriors[[p]] = list()
 
     for (i in seq_len(n_subj)) {
 
@@ -94,18 +99,24 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
       next_trt = sample(1:n_trts, size = 1,
                         prob = id_probs %>% dplyr::select(starts_with("X")) %>%
                           unlist)
-      x = array(0, n_trts)
+      x = matrix(0, nrow = 1, ncol = n_trts)
       x[1] = 1              # intercept
       x[next_trt] = 1       # setting next treatment
+      design = x[rep(1, n_obvs), ]
 
       # Generate observations for subject based on selected treatment for cycle
-      id_obvs = matrix(x, nrow = n_obvs, ncol = 3, byrow = T)
-      id_y = (id_obvs %*% betas[i,]) + stats::rnorm(n_obvs, 0, y_sigma)
-      id_data = tibble::as_tibble(id_obvs, Y = id_y, id = i) %>%
-        select(id, startsWith("X"), Y)
-      colnames(id_data) = c("id",
-                            paste0("X", 1:n_trts),
-                            "Y")
+      id_obvs = rep(x %*% betas[i, ], n_obvs)
+      id_y = id_obvs + stats::rnorm(n_obvs, 0, y_sigma)
+
+      if (n_obvs == 1) {
+        id_data = tibble_row(id = i, Y = id_y, period = p)
+        for (j in seq_len(n_trts)) {
+          id_data[[paste0("X", j)]] = x[j]
+        }
+      } else {
+        id_data = cbind(rep(i, n_obvs), design, id_y, rep(p, n_obvs)) %>% tibble::as_tibble()
+        colnames(id_data) = c("id", paste0("X", 1:n_trts), "Y", "period")
+      }
 
       current_data = dplyr::bind_rows(current_data, id_data)
 
@@ -117,10 +128,13 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
         prior = rstanarm::normal(0, 2.5),
         prior_aux = rstanarm::exponential(1, autoscale = TRUE),
         prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
-        chains = chains, iter = iter, seed = 1, adapt_delta = adapt_delta,
+        chains = chains, iter = iter, seed = seed, adapt_delta = adapt_delta,
         control = list(max_treedepth = max_treedepth),
+        refresh = 0,
         QR = T
       )
+
+      trial_posteriors[[p]][[i]] = as.data.frame(posterior)
 
       # Add the probabilities used for the individual into the set
       # Need to do it now because it will possibly change with more data
@@ -128,7 +142,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
       trial_probs = dplyr::bind_rows(trial_probs, id_probs)
 
       # Recalculate the allocation probabilities using the new data
-      current_probs = allocate_probabilities(posterior, n_trts)
+      current_probs = allocate_probabilities(posterior, n_trts, optimize = optimize)
 
     } # end of subject loop
 
@@ -151,7 +165,7 @@ AGG = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
     ),
     allocation = trial_probs,
     data = current_data,
-    posterior = posterior
+    posteriors = trial_posteriors
   )
 
   output
