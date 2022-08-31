@@ -17,17 +17,16 @@ allocate_probabilities = function(posterior,
   samples = as.data.frame(posterior)
   S = nrow(samples)
 
-  # Back-calculating number of subjects from posterior dataframe
-  n_subj = (ncol(samples) - (n_trts) - ((n_trts * (n_trts+1) * 0.5)) - 1) * (1/n_trts)
-
-  prob_df = matrix(0, nrow = n_subj, ncol = n_trts)
-
   # construct prob_df so that it initializes an empty matrix of zeroes for each trt
 
   if (optimize == "max") { m = max}
   else { m = min }
 
   if (level == "aggregate") {
+
+    # Back-calculating number of subjects from posterior dataframe
+    n_subj = (ncol(samples) - (n_trts) - ((n_trts * (n_trts+1) * 0.5)) - 1) * (1/n_trts)
+    prob_df = matrix(0, nrow = n_subj, ncol = n_trts)
 
     # Iterate over all of the subjects
     for (i in seq_len(n_subj)) {
@@ -54,6 +53,9 @@ allocate_probabilities = function(posterior,
     }
 
   } else if (level == "individual") {
+
+    n_subj = (ncol(samples) - ((n_trts * (n_trts+1) * 0.5)) - 1) * (1/n_trts)
+    prob_df = matrix(0, nrow = n_subj, ncol = n_trts)
 
     # Iterate over all of the subjects
     for (i in seq_len(n_subj)) {
