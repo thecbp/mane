@@ -95,9 +95,6 @@ IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
     # assign treatment accordingly, and then generate data
     for (i in seq_len(n_subj)) {
 
-
-      # TODO: figure out what is preventing this filtering from actually working
-
       id_probs = current_probs %>% dplyr::filter(id == i)
 
       # Create treatment vector based on regime (1 where active, 0 else)
@@ -137,8 +134,7 @@ IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
       prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
       chains = chains, iter = iter, seed = seed, adapt_delta = adapt_delta,
       control = list(max_treedepth = max_treedepth),
-      refresh = 0,
-      QR = T
+      refresh = 0
     )
 
     trial_posteriors[[p]] = as.data.frame(posterior)
@@ -149,8 +145,8 @@ IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
 
     # Add the probabilities used for the individual into the set
     # Need to do it now because it will possibly change with more data
-    id_probs$period = p
-    trial_probs = dplyr::bind_rows(trial_probs, id_probs)
+    current_probs$period = p
+    trial_probs = dplyr::bind_rows(trial_probs, current_probs)
 
   } # end of period loop
 
