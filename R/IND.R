@@ -150,6 +150,24 @@ IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
 
   } # end of period loop
 
+  # Build the formula for the aggregate hierarchical model
+  ranef = paste0("X", 2:n_trts, collapse = " + ")
+  fixed = paste0(" + (1 + ", ranef ,"|id)")       # assumes id indexes participant
+  model_formula = paste0("Y ~ ", ranef, fixed)
+
+  agg_model = rstanarm::stan_glmer(
+    formula = model_formula,
+    data = current_data, family = "gaussian",
+    prior_intercept = rstanarm::normal(100, 10),
+    prior = rstanarm::normal(0, 2.5),
+    prior_aux = rstanarm::exponential(1, autoscale = TRUE),
+    prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
+    chains = chains, iter = iter, seed = 1, adapt_delta = adapt_delta,
+    control = list(max_treedepth = max_treedepth),
+    refresh = 0,
+    QR = T
+  )
+
   # Set up output object
   output = list(
     trial_params = list(
@@ -167,7 +185,8 @@ IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
     ),
     allocation = trial_probs,
     data = current_data,
-    posteriors = trial_posteriors
+    posteriors = trial_posteriors,
+    agg_model = agg_model
   )
 
   output
