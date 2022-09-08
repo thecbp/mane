@@ -66,8 +66,8 @@ allocate_probabilities = function(posterior,
       colnames(trt) = paste0("X", 1:n_trts)
 
       # Calculate subject-specific betas
-      current_id = paste0("id:",i)
-      betas = samples %>% dplyr::select(contains(current_id))
+      current_id = paste0("id:",i, "]")
+      betas = samples %>% dplyr::select(ends_with(current_id))
 
       # Find which arm produced best treatment effects
       posterior_outcomes = trt %*% t(betas)
