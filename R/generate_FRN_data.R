@@ -2,7 +2,6 @@
 #'
 #' @param n_subj Number of subjects to include in trial
 #' @param n_trts Number of treatments to be considered
-#' @param n_periods Number of treatments periods
 #' @param n_obvs Number of observations made during a treatment period
 #' @param betas Matrix containing treatment effects for each individual (rows) and treatment (columns)
 #' @param y_sigma Within-individual noise of continuous outcome
@@ -19,7 +18,6 @@
 #'                                  n_obvs = 5, betas, y_sigma = 2)
 generate_FRN_data = function(n_subj,
                              n_trts,
-                             n_periods,
                              n_obvs,
                              betas,
                              y_sigma) {
@@ -38,7 +36,18 @@ generate_FRN_data = function(n_subj,
   id = rep(1:n_subj, times = n_obvs * n_trts)
 
   output = cbind(id = id, X, Y = Y) %>% tibble::as_tibble()
-  output$period = rep(1:n_trts, each = n_subj)
+  output = output %>%
+    mutate(
+      period = rep(1:n_trts, each = n_subj * n_obvs)
+    ) %>%
+    group_by(id) %>%
+    mutate(
+      time = 1:n_obvs # Mark the time of observation
+    ) %>%
+    ungroup()
+
+
+  out
 
   output
 }
