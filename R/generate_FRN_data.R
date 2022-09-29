@@ -42,12 +42,12 @@ generate_FRN_data = function(n_subj,
     ) %>%
     group_by(id) %>%
     mutate(
-      time = 1:n_obvs # Mark the time of observation
+      time = 1:(n_trts * n_obvs) # Mark the time of observation
     ) %>%
     ungroup()
 
 
-  out
+  output
 
   output
 }
