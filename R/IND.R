@@ -11,6 +11,8 @@
 #' that estimating the individual-level effects are of interest.
 #'
 #' @inheritParams FRN
+#' @param n_periods Positive integer indicating number of treatment periods
+#' @param p Positive integer indicating number of autocorrelation terms to use
 #'
 #' @return List containing the simulation parameters and resulting trial data that came from the parameters
 #' @export
@@ -39,8 +41,15 @@
 #' #           stanfile = stanfile, betas = betas, chains = 1, warmup = 1000,
 #' #           iter = 3000)
 #' }
-IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "max",
-               chains, iter, adapt_delta = 0.999, max_treedepth = 15, seed = 1) {
+IND = function(n_subj, n_trts, n_periods, n_obvs,
+               betas, y_sigma, chains, iter, lag,
+               stabilize = NULL,
+               objective = "max",
+               adapt_delta = 0.999,
+               max_treedepth = 15,
+               seed = 1) {
+
+  set.seed(seed)
 
   # Stopping the RMD CHECK for global variables
   id = NULL
@@ -49,124 +58,136 @@ IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
   trial_posteriors = list()
 
   print("Burn in period")
+
   # Initial FRN phase data for burn-in
-  current_data = generate_FRN_data(n_subj, n_trts, n_periods = 1, n_obvs, betas, y_sigma)
+  start_data = generate_FRN_data(n_subj, n_trts, n_obvs, betas, y_sigma)
 
-  # Build the formula for the hierarchical model
-  ranef = paste0("X", 2:n_trts, collapse = " + ")
-  fixed = paste0("0 + (1 + ", ranef ,"|id)")       # assumes id indexes participant
-  model_formula = paste0("Y ~ ", fixed)
+  # Build the formula for the model (X1 used as reference)
+  main = paste0("X", 2:n_trts, collapse = " + ")
+  f = paste0("Y ~ ", main, " + ar(time = time, p = ", lag, ")")
 
-  # Generating posterior samples after data collected for everyone in period
-  # Aggregate level analysis to get the population level effects
-  posterior = rstanarm::stan_glmer(
-    formula = model_formula,
-    data = current_data, family = "gaussian",
-    prior_intercept = rstanarm::normal(100, 10),
-    prior = rstanarm::normal(0, 2.5),
-    prior_aux = rstanarm::exponential(1, autoscale = TRUE),
-    prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
-    chains = chains, iter = iter, seed = 1, adapt_delta = adapt_delta,
-    control = list(max_treedepth = max_treedepth),
-    refresh = 0
+  # Setting priors for the model
+  individual_priors = c(
+    brms::set_prior("normal(0, 100)", class = "Intercept"),
+    brms::set_prior("normal(0, 100)", class = "b"),
+    brms::set_prior("normal(0, 100)", class = "ar")
+    # Using the default priors for sigma (half_t)
   )
 
-  trial_posteriors[["burn"]] = as.data.frame(posterior)
+  # Choosing to use the default priors for the correlation of random effects
 
-  # Index to start the loop, since n_trts periods have been used in FRN phase
-  adaptive_start = n_trts + 1 # FRN requires one period from every treatment
+  # Generating posterior samples after data collected for everyone in period
+  posteriors = start_data %>%
+    tidyr::nest(data = colnames(current_data)[-1]) %>% # group data on id column
+    dplyr::mutate(
+      model = map(data, function(df) {
+        brms::brm(data = df, formula = f,
+                  family = gaussian(link = "identity"),
+                  chains = chains, iter = iter,
+                  prior = individual_priors,
+                  control = list(max_treedepth = max_treedepth,
+                                 adapt_delta = adapt_delta))
+      })
+    )
+
+  # Record all of the models
+  trial_posteriors[[n_trts]] = posteriors
+
+  # If stabilize not initalized, use Thall & Walthen's optimal parameter
+  if (is.null(stabilize)) { c = n_trts / (2 * n_periods) }
+  else { c = stabilize }
 
   # Calculate allocation probabilities based on Thompson Sampling
-  # function for outputting allocation probabilities for each person
-  # input: stan model, output: tibble of ids & allocation probabilites
-  current_probs = allocate_probabilities(posterior, n_trts, optimize = optimize,
-                                         level = "individual")
+  current_probs = allocate_probabilities(posteriors, c, objective = objective)
   current_probs$period = n_trts # By convention, just assign the last burn in period
 
   # Start collecting all of the allocation probabilities into one place
   trial_probs = current_probs
 
+  # Index to start the loop, since n_trts periods have been used in FRN phase
+  adaptive_start = n_trts + 1 # FRN requires one period from every treatment
+
   # For each treatment cycle...
-  for (p in adaptive_start:n_periods) {
+  for (per in adaptive_start:n_periods) {
 
-    print(paste0("Starting period ", p))
+    print(paste0("Starting period ", per))
 
-    # ... for each subject, calculate posterior allocation probabilities,
-    # assign treatment accordingly, and then generate data
-    for (i in seq_len(n_subj)) {
+    # Randomize each subject to new treatment, sample data, add to current set
+    updated_posteriors = posteriors %>%
+      dplyr::mutate(
+        next_trt = purrr::map_dbl(id, function(i) {
 
-      id_probs = current_probs %>% dplyr::filter(id == i)
+          id_probs = current_probs %>%
+            dplyr::filter(id == i) %>%
+            dplyr::select(tidyselect::starts_with("X")) %>%
+            unlist()
 
-      # Create treatment vector based on regime (1 where active, 0 else)
-      next_trt = sample(1:n_trts, size = 1,
-                        prob = id_probs %>% dplyr::select(starts_with("X")) %>%
-                          unlist)
-      x = matrix(0, nrow = 1, ncol = n_trts)
-      x[1] = 1              # intercept
-      x[next_trt] = 1       # setting next treatment
-      design = x[rep(1, n_obvs), ]
+          sample(1:n_trts, size = 1, prob = id_probs)
 
-      # Generate observations for subject based on selected treatment for cycle
-      id_obvs = rep(x %*% betas[i, ], n_obvs)
-      id_y = id_obvs + stats::rnorm(n_obvs, 0, y_sigma)
+        }),
+        newdata = purrr::map2(next_trt, id, function(nt, i) {
 
-      if (n_obvs == 1) {
-        id_data = tibble_row(id = i, Y = id_y, period = p)
-        for (j in seq_len(n_trts)) {
-          id_data[[paste0("X", j)]] = x[j]
-        }
-      } else {
-        id_data = cbind(rep(i, n_obvs), design, id_y, rep(p, n_obvs)) %>% tibble::as_tibble()
-        colnames(id_data) = c("id", paste0("X", 1:n_trts), "Y", "period")
-      }
+          x = matrix(0, nrow = 1, ncol = n_trts)
+          x[1] = 1        # intercept
+          x[nt] = 1       # setting next treatment
+          design = x[rep(1, n_obvs), ]
+          id_obvs = rep(x %*% betas[i, ], n_obvs)
+          id_y = id_obvs + stats::rnorm(n_obvs, 0, y_sigma)
 
-      current_data = dplyr::bind_rows(current_data, id_data)
+          if (n_obvs == 1) {
+            id_data = tibble::as_tibble(
+              list(
+                Y = id_y,
+                period = per
+              ))
+            for (j in seq_len(n_trts)) {
+              id_data[[paste0("X", j)]] = x[j]
+            }
+          } else {
+            id_data = cbind(design, id_y, rep(per, n_obvs)) %>% tibble::as_tibble()
+            colnames(id_data) = c(paste0("X", 1:n_trts), "Y", "period")
+          }
 
-    } # end of subject loop
+          id_data
 
-    # Update the posterior distribution after observing these new values
-    posterior = rstanarm::stan_glmer(
-      formula = model_formula,
-      data = current_data, family = "gaussian",
-      prior_intercept = rstanarm::normal(100, 10),
-      prior = rstanarm::normal(0, 2.5),
-      prior_aux = rstanarm::exponential(1, autoscale = TRUE),
-      prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
-      chains = chains, iter = iter, seed = seed, adapt_delta = adapt_delta,
-      control = list(max_treedepth = max_treedepth),
-      refresh = 0
-    )
+        }),
+        full = purrr::map2(data, newdata, function(d, nd) {
 
-    trial_posteriors[[p]] = as.data.frame(posterior)
+          # Error has something to do with data
+          full_data = dplyr::bind_rows(d, nd)
+          full_data$time = 1:nrow(full_data)
+          full_data
 
-    # Recalculate the allocation probabilities using the new data
-    current_probs = allocate_probabilities(posterior, n_trts, optimize = optimize,
-                                           level = "individual")
+        }),
+        model = purrr::map(full, function(df) {
 
-    # Add the probabilities used for the individual into the set
-    # Need to do it now because it will possibly change with more data
-    current_probs$period = p
+          brms::brm(data = df, formula = f,
+                    family = gaussian(link = "identity"),
+                    chains = chains, iter = iter,
+                    prior = individual_priors,
+                    control = list(max_treedepth = max_treedepth,
+                                   adapt_delta = adapt_delta))
+
+        })
+      ) %>%
+      dplyr::select(id, data = full, model)
+
+    # Record and update the posteriors used in the loop
+    trial_posteriors[[per]] = updated_posteriors
+    posteriors = updated_posteriors
+
+    # If stabilize not initialized, use Thall & Walthen's optimal parameter
+    if (is.null(stabilize)) { c = per / (2 * n_periods) }
+    else { c = stabilize }
+
+    # Readjust reallocation probabilities based on new updated posterior
+    current_probs = allocate_probabilities(posteriors, c, objective = objective)
+    current_probs$period = per
+
+    # Record the new probabilities
     trial_probs = dplyr::bind_rows(trial_probs, current_probs)
 
   } # end of period loop
-
-  # Build the formula for the aggregate hierarchical model
-  ranef = paste0("X", 2:n_trts, collapse = " + ")
-  fixed = paste0(" + (1 + ", ranef ,"|id)")       # assumes id indexes participant
-  model_formula = paste0("Y ~ ", ranef, fixed)
-
-  agg_model = rstanarm::stan_glmer(
-    formula = model_formula,
-    data = current_data, family = "gaussian",
-    prior_intercept = rstanarm::normal(100, 10),
-    prior = rstanarm::normal(0, 2.5),
-    prior_aux = rstanarm::exponential(1, autoscale = TRUE),
-    prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
-    chains = chains, iter = iter, seed = 1, adapt_delta = adapt_delta,
-    control = list(max_treedepth = max_treedepth),
-    refresh = 0,
-    QR = T
-  )
 
   # Set up output object
   output = list(
@@ -184,11 +205,22 @@ IND = function(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma, optimize = "ma
       max_treedepth = max_treedepth
     ),
     allocation = trial_probs,
-    data = current_data,
-    posteriors = trial_posteriors,
-    agg_model = agg_model
+    posteriors = trial_posteriors
   )
 
   output
 
 }
+
+
+# Update the posterior distribution after observing these new values
+# posterior = rstanarm::stan_glmer(
+#   formula = model_formula,
+#   data = current_data, family = "gaussian",
+#   prior_intercept = rstanarm::normal(100, 10),
+#   prior = rstanarm::normal(0, 2.5),
+#   prior_aux = rstanarm::exponential(1, autoscale = TRUE),
+#   prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
+#   chains = chains, iter = iter, seed = seed, adapt_delta = adapt_delta,
+#   control = list(max_treedepth = max_treedepth)
+# )
