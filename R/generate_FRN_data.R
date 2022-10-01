@@ -37,17 +37,14 @@ generate_FRN_data = function(n_subj,
 
   output = cbind(id = id, X, Y = Y) %>% tibble::as_tibble()
   output = output %>%
-    mutate(
+    dplyr::mutate(
       period = rep(1:n_trts, each = n_subj * n_obvs)
     ) %>%
-    group_by(id) %>%
-    mutate(
+    dplyr::group_by(id) %>%
+    dplyr::mutate(
       time = 1:(n_trts * n_obvs) # Mark the time of observation
     ) %>%
     ungroup()
-
-
-  output
 
   output
 }
