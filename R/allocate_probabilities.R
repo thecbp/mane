@@ -3,6 +3,7 @@
 #' @param posterior stanreg object that contains the posterior samples
 #' @param c float between 0 and 1 indicating how much to stablize probabilies
 #' @param objective character indicating whether to optimize min or max
+
 #'
 #' @return Dataframe containing the treatment allocation probabilities by id
 #' @export
@@ -50,4 +51,3 @@ allocate_probabilities = function(posterior, c, objective = "max") {
 
   output
 }
-
