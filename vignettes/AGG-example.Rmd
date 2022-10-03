@@ -73,7 +73,7 @@ betas = rbind(
 chains = 4
 iter = 2500 * 2
 
-for (i in 3:100) {
+for (i in 3:50) {
   
   start = lubridate::now()
   

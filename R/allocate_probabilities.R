@@ -49,5 +49,17 @@ allocate_probabilities = function(posterior, c, objective = "max") {
     ) %>%
     tidyr::unnest(probs)
 
+  # Adjust column names
+  n_trts = ncol(output) - 1
+  colnames(output) = c("id", paste0("X", 1:n_trts))
+
+  # Replace NA with 0
+  replace_list = list()
+  for (col in paste0("X", 1:n_trts)) {
+    replace_list[[col]] = 0
+  }
+
+  output = output %>% replace_na(replace_list)
+
   output
 }
