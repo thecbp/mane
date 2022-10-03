@@ -40,7 +40,7 @@ allocate_probabilities = function(posterior, c, objective = "max") {
         prob_df = stab_probs %>%
           tibble::as_tibble() %>%
           dplyr::mutate(
-            trt = paste0("X", 1:n_trts)
+            trt = names(stab_probs)
           ) %>%
           tidyr::pivot_wider(names_from = trt, values_from = value)
 

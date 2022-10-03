@@ -61,17 +61,17 @@ library(tidyverse)
 
 # How does effect size affect the allocation probability to best treatment
 betas = rbind(
-  c(130, 0, 0),
-  c(130, -2, 0),
-  c(130, -4, 0),
-  c(130, -6, 0),
-  c(130, -8, 0),
+  # c(130, 0, 0),
+  # c(130, -2, 0),
+  # c(130, -4, 0),
+  # c(130, -6, 0),
+  # c(130, -8, 0),
   c(130, -10, 0),
   c(130, -12, 0)
 ) %>% as.matrix
 
 chains = 4
-iter = 2500 * 2
+iter = 1000 * 2
 
 for (i in 3:50) {
   
@@ -90,8 +90,8 @@ for (i in 3:50) {
             seed = i)
   
   end = lubridate::now()
-  
-  print(paste0("Run took: ", end - start))
+  dur = end - start
+  print(paste0("Run took: ", dur))
   
   file = paste0("ES/ES-v2-sim-run-", i, ".rds")
   write_rds(sim, file)
