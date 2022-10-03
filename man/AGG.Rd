@@ -32,7 +32,7 @@ AGG(
 
 \item{y_sigma}{Double indicating amount of within-person variance}
 
-\item{optimize}{character indicating if the maximum or minimum reward should be optimized for}
+\item{optimize}{character indicating "max" or "min". Describes what the allocation probabilities should be optimized on}
 
 \item{chains}{Integer indicating number of chains to use in MCMC}
 

@@ -4,12 +4,14 @@
 \alias{generate_FRN_data}
 \title{Simulate a fixed randomization design for an N-of-1 trial}
 \usage{
-generate_FRN_data(n_subj, n_trts, n_obvs, betas, y_sigma)
+generate_FRN_data(n_subj, n_trts, n_periods, n_obvs, betas, y_sigma)
 }
 \arguments{
 \item{n_subj}{Number of subjects to include in trial}
 
 \item{n_trts}{Number of treatments to be considered}
+
+\item{n_periods}{Number of treatments periods}
 
 \item{n_obvs}{Number of observations made during a treatment period}
 

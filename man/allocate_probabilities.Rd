@@ -4,14 +4,14 @@
 \alias{allocate_probabilities}
 \title{Reallocate the treatment randomization probabilities via Thompson Sampling}
 \usage{
-allocate_probabilities(posterior, c, optimize = "max")
+allocate_probabilities(posterior, n_trts, optimize = "max")
 }
 \arguments{
 \item{posterior}{stanreg object that contains the posterior samples}
 
-\item{c}{float between 0 and 1 indicating how much to stablize probabilies}
+\item{n_trts}{integer indicating number of treatments currently in trial}
 
-\item{optimize}{character indicating whether to optimize min or max}
+\item{optimize}{character indicating if the maximum or minimum reward should be optimized for}
 }
 \value{
 Dataframe containing the treatment allocation probabilities by id

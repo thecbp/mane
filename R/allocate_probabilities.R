@@ -1,8 +1,9 @@
 #' Reallocate the treatment randomization probabilities via Thompson Sampling
 #'
 #' @param posterior stanreg object that contains the posterior samples
-#' @param c float between 0 and 1 indicating how much to stablize probabilies
-#' @param optimize character indicating whether to optimize min or max
+#' @param n_trts integer indicating number of treatments currently in trial
+#' @param optimize character indicating if the maximum or minimum reward should be optimized for
+#' @param level character indicating if the model is individual or aggregate-level
 #'
 #' @return Dataframe containing the treatment allocation probabilities by id
 #' @export
@@ -12,7 +13,6 @@ allocate_probabilities = function(posterior, c, objective = "max") {
   # Set the correct function to maximize on
   if (objective == "max") { m = max }
   else { m = min }
-
 
   output = posterior %>%
     dplyr::transmute(
@@ -37,30 +37,19 @@ allocate_probabilities = function(posterior, c, objective = "max") {
         # Stabilize the probabilities
         stab_probs = probs^c / sum(probs^c)
 
-        # Tidy the probabilities into a tibble
         prob_df = stab_probs %>%
           tibble::as_tibble() %>%
-          mutate(
-            arm = names(stab_probs)
+          dplyr::mutate(
+            trt = paste0("X", 1:n_trts)
           ) %>%
-          tidyr::pivot_wider(names_from = arm, values_from = value)
+          tidyr::pivot_wider(names_from = trt, values_from = value)
 
         prob_df
-
       })
     ) %>%
     tidyr::unnest(probs)
 
-  n_trts = ncol(output)
-  colnames(output) = c("id", paste0("X", 1:n_trts))
-
-  # Setting up list for NA replacement
-  # Replace values that don't appear as 0
-  replace_list = list()
-  for (col in paste0("X", 1:n_trts)) { replace_list[[col]] = 0 }
-
-  output = output %>%
-    replace_na(replace_list)
-
   output
 }
+Footer
+
