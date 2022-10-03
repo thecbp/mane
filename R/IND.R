@@ -78,7 +78,7 @@ IND = function(n_subj, n_trts, n_periods, n_obvs,
 
   # Generating posterior samples after data collected for everyone in period
   posteriors = start_data %>%
-    tidyr::nest(data = colnames(current_data)[-1]) %>% # group data on id column
+    tidyr::nest(data = colnames(start_data)[-1]) %>% # group data on id column
     dplyr::mutate(
       model = map(data, function(df) {
         brms::brm(data = df, formula = f,
@@ -86,7 +86,8 @@ IND = function(n_subj, n_trts, n_periods, n_obvs,
                   chains = chains, iter = iter,
                   prior = individual_priors,
                   control = list(max_treedepth = max_treedepth,
-                                 adapt_delta = adapt_delta))
+                                 adapt_delta = adapt_delta),
+                  refresh = 0)
       })
     )
 
@@ -166,7 +167,8 @@ IND = function(n_subj, n_trts, n_periods, n_obvs,
                     chains = chains, iter = iter,
                     prior = individual_priors,
                     control = list(max_treedepth = max_treedepth,
-                                   adapt_delta = adapt_delta))
+                                   adapt_delta = adapt_delta),
+                    refresh = 0)
 
         })
       ) %>%
@@ -211,16 +213,3 @@ IND = function(n_subj, n_trts, n_periods, n_obvs,
   output
 
 }
-
-
-# Update the posterior distribution after observing these new values
-# posterior = rstanarm::stan_glmer(
-#   formula = model_formula,
-#   data = current_data, family = "gaussian",
-#   prior_intercept = rstanarm::normal(100, 10),
-#   prior = rstanarm::normal(0, 2.5),
-#   prior_aux = rstanarm::exponential(1, autoscale = TRUE),
-#   prior_covariance = rstanarm::decov(reg = 1, conc = 1, shape = 1, scale = 1),
-#   chains = chains, iter = iter, seed = seed, adapt_delta = adapt_delta,
-#   control = list(max_treedepth = max_treedepth)
-# )

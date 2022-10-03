@@ -13,6 +13,7 @@ allocate_probabilities = function(posterior, c, objective = "max") {
   if (objective == "max") { m = max }
   else { m = min }
 
+
   output = posterior %>%
     dplyr::transmute(
       id = id,
@@ -36,17 +37,30 @@ allocate_probabilities = function(posterior, c, objective = "max") {
         # Stabilize the probabilities
         stab_probs = probs^c / sum(probs^c)
 
+        # Tidy the probabilities into a tibble
         prob_df = stab_probs %>%
           tibble::as_tibble() %>%
-          dplyr::mutate(
-            trt = paste0("X", 1:n_trts)
+          mutate(
+            arm = names(stab_probs)
           ) %>%
-          tidyr::pivot_wider(names_from = trt, values_from = value)
+          tidyr::pivot_wider(names_from = arm, values_from = value)
 
         prob_df
+
       })
     ) %>%
     tidyr::unnest(probs)
+
+  n_trts = ncol(output)
+  colnames(output) = c("id", paste0("X", 1:n_trts))
+
+  # Setting up list for NA replacement
+  # Replace values that don't appear as 0
+  replace_list = list()
+  for (col in paste0("X", 1:n_trts)) { replace_list[[col]] = 0 }
+
+  output = output %>%
+    replace_na(replace_list)
 
   output
 }
