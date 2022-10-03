@@ -11,12 +11,14 @@ IND(
   n_obvs,
   betas,
   y_sigma,
-  stanfile,
   chains,
-  warmup,
   iter,
-  adapt_delta = 0.99,
-  max_treedepth = 15
+  lag,
+  stabilize = NULL,
+  objective = "max",
+  adapt_delta = 0.999,
+  max_treedepth = 15,
+  seed = 1
 )
 }
 \arguments{
@@ -24,7 +26,7 @@ IND(
 
 \item{n_trts}{Integer indicating number of treatments in trial}
 
-\item{n_periods}{Integer indicating number of treatment periods in trial}
+\item{n_periods}{Positive integer indicating number of treatment periods}
 
 \item{n_obvs}{Integer indicating how many observations should be recorded from a particular treatment regime}
 
@@ -34,13 +36,15 @@ IND(
 
 \item{chains}{Integer indicating number of chains to use in MCMC}
 
-\item{warmup}{Integer indicating how long the warmup period for MCMC should be}
-
 \item{iter}{Integer indicating the total number of posterior samples to generate}
 
 \item{adapt_delta}{Integer indicating the step size for MCMC}
 
 \item{max_treedepth}{Integer indicating the maximum tree depth for MCMC}
+
+\item{seed}{Integer indicating random seed to use}
+
+\item{p}{Positive integer indicating number of autocorrelation terms to use}
 }
 \value{
 List containing the simulation parameters and resulting trial data that came from the parameters

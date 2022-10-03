@@ -1,9 +1,8 @@
 #' Reallocate the treatment randomization probabilities via Thompson Sampling
 #'
 #' @param posterior stanreg object that contains the posterior samples
-#' @param n_trts integer indicating number of treatments currently in trial
-#' @param optimize character indicating if the maximum or minimum reward should be optimized for
-#' @param level character indicating if the model is individual or aggregate-level
+#' @param c float between 0 and 1 indicating how much to stablize probabilies
+#' @param objective character indicating whether to optimize min or max
 #'
 #' @return Dataframe containing the treatment allocation probabilities by id
 #' @export
@@ -51,5 +50,4 @@ allocate_probabilities = function(posterior, c, objective = "max") {
 
   output
 }
-Footer
 

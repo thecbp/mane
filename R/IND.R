@@ -11,6 +11,8 @@
 #' that estimating the individual-level effects are of interest.
 #'
 #' @inheritParams FRN
+#' @param n_periods Positive integer indicating number of treatment periods
+#' @param p Positive integer indicating number of autocorrelation terms to use
 #'
 #' @return List containing the simulation parameters and resulting trial data that came from the parameters
 #' @export
