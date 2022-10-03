@@ -222,4 +222,3 @@ IND = function(n_subj, n_trts, n_periods, n_obvs,
 #   chains = chains, iter = iter, seed = seed, adapt_delta = adapt_delta,
 #   control = list(max_treedepth = max_treedepth)
 # )
-Footer
