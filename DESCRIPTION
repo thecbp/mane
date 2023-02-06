@@ -15,6 +15,7 @@ Imports:
     MASS,
     rstan,
     rstanarm,
+    shiny,
     stats,
     tibble,
     tidyr
