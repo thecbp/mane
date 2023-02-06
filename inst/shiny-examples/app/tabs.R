@@ -1,7 +1,7 @@
 simulationTab = sidebarLayout(
   sidebarPanel(
     # fluidRow(
-    #   column(12, submitButton(text = h2("Simulate trials"),
+    #   column(12, actionButton(text = h2("Simulate trials"),
     #                           width = "100%"))
     # ),
     wellPanel(
@@ -9,8 +9,8 @@ simulationTab = sidebarLayout(
       numericInput(inputId = "n-trts",
                    label = "Number of Treatments",
                    value = 2),
-      numericInput(inputId = "burn-in-lengths",
-                   label = "Burn-in Period Lengths",
+      numericInput(inputId = "n-burn-cycles",
+                   label = "Number of Burn-in Cycles",
                    value = 1),
       numericInput(inputId = "adaptive-length",
                    label = "Adaptive Period Lengths",
@@ -34,7 +34,30 @@ simulationTab = sidebarLayout(
     ),
     wellPanel(
       h3("Prior Parameters"),
-      uiOutput("priorControls")
+      fluidRow(
+        column(6, numericInput(inputId = "intercept-prior-mean",
+                               label = paste0("Intercept Prior Mean"),
+                               value = 0)),
+        column(6, numericInput(inputId = "intercept-prior-variance",
+                               label = paste0("Intercept Prior Variance"),
+                               value = 100))
+
+      ),
+      fluidRow(
+        column(6, numericInput(inputId = "treatment-prior-mean",
+                               label = paste0("Treatment Prior Mean"),
+                               value = 0)),
+        column(6, numericInput(inputId = "treatment-prior-variance",
+                               label = paste0("Treatment Prior Variance"),
+                               value = 100))
+
+      ),
+      fluidRow(
+        column(12, numericInput(inputId = "noise-prior-df",
+                               label = paste0("Noise Prior Degrees of Freedom"),
+                               value = 1))
+
+      )
     ),
     wellPanel(
       h3("MCMC Parameters"),
@@ -43,7 +66,13 @@ simulationTab = sidebarLayout(
                    value = 4),
       numericInput(inputId = "samples-per-chain",
                    label = "Samples per chains",
-                   value = 1000)
+                   value = 1000),
+      numericInput(inputId = "adapt-delta",
+                   label = "Adapt Delta",
+                   value = 1000),
+      numericInput(inputId = "max-treedepth",
+                   label = "Maximum tree depth",
+                   value = 15)
     )
   ),
   mainPanel(
