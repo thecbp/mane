@@ -12,10 +12,13 @@ simulationTab = sidebarLayout(
       numericInput(inputId = "n-burn-cycles",
                    label = "Number of Burn-in Cycles",
                    value = 1),
-      numericInput(inputId = "adaptive-length",
-                   label = "Adaptive Period Lengths",
+      numericInput(inputId = "burn-n-obvs-per-period",
+                   label = "Number of Observations per Period (Burn-in)",
                    value = 1),
-      numericInput(inputId = "maximum-length",
+      numericInput(inputId = "adaptive-n-obvs-per-period",
+                   label = "Number of Observations per Period (Adaptive)",
+                   value = 1),
+      numericInput(inputId = "maximum-duration",
                    label = "Maximum Number of Periods",
                    value = 50),
       numericInput(inputId = "n-sims",
@@ -50,7 +53,6 @@ simulationTab = sidebarLayout(
         column(6, numericInput(inputId = "treatment-prior-variance",
                                label = paste0("Treatment Prior Variance"),
                                value = 100))
-
       ),
       fluidRow(
         column(12, numericInput(inputId = "noise-prior-df",
