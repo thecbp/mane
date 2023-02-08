@@ -9,13 +9,13 @@ burnin = function(n_trts, n_burn_cycles, burn_obvs_per_period, betas, y_sigma) {
 
   # Calculate outcome with linear model
   # Also adding within-subject noise
-  Y = ((X %*% t(betas)) %>% c()) + stats::rnorm(nrow(X), 0, y_sigma)
+  Y = ((X %*% betas) %>% c()) + stats::rnorm(nrow(X), 0, y_sigma)
 
   output = cbind(X, Y = Y) %>% tibble::as_tibble()
   output = output %>%
-    dplyr::mutate( period = rep(1:n_trts, each = n_obvs) ) %>%
-    dplyr::group_by(id) %>%
-    dplyr::mutate( time = 1:n_obvs) # Mark the time of observation
+    dplyr::mutate(
+      period = rep(1:n_trts, each = burn_obvs_per_period)
+    )
 
   output
 
