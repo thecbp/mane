@@ -1,55 +1,62 @@
-source("helpers")
-
 server <- function(input, output, session) {
 
-  simulation_data = eventReactive(input[["simulate"]], {
+  run_simulation = reactive({
 
-    treatment_effect_input_names = paste0("trt-effect-", 1:input[["n-trts"]])
-    betas = input[treatment_effect_input_names] %>% unlist()
-    intercept_prior_string = paste0("normal(", input[["intercept-prior-mean"]],
-                                    ",", input[["intercept-prior-variance"]], ")")
-    treatment_prior_string = paste0("normal(", input[["treatment-prior-mean"]],
-                                    ",", input[["treatment-prior-variance"]], ")")
+    if (input$simulate > 0) {
 
-    priors = list(
-      "Intercept" = intercept_prior_string,
-      "b" = treatment_prior_string
-    )
-
-    withProgress(message = "Simulating Platform-of-1 trials", {
-
-      for (i in seq_len(input[["n-sims"]])) {
-
-        sim = simulate(n_trts = input[["n-trts"]],
-                       n_burn_cycles = input[["n-burn-cycles"]],
-                       burn_obvs_per_period = input[["burn-n-obvs-per-period"]],
-                       adaptive_obvs_per_period = input[["adaptive-n-obvs-per-period"]],
-                       max_duration = input[["maximum-duration"]],
-                       betas = betas,
-                       y_sigma = input[["within-person-noise"]],
-                       priors = priors,
-                       n_chains = input[["n-chains"]],
-                       n_iter = input[["samples-per-chain"]],
-                       lag = 1, # RECHECK LATER
-                       stabilize = NULL,
-                       objective = input[["objective"]],
-                       adapt_delta = input[["adapt-delta"]],
-                       max_treedepth = input[["max-treedepth"]])
-
-        # Increment progress on the progress bar
-        incProgress(1 / input[["n-sims"]])
+      treatment_effect_input_names = paste0("trt-effect-", 1:input$n_trts)
+      betas = c()
+      for (effect in treatment_effect_input_names) {
+        betas = c(betas, input[[effect]])
       }
-      # ADD LATER: SOME STRUCTURE THAT PUTS TOGETHER ALL OF THE SIM DATA
-    })
+      intercept_prior_string = paste0("normal(", input$intercept_prior_mean,
+                                      ",", input$intercept_prior_variance, ")")
+      treatment_prior_string = paste0("normal(", input$treatment_prior_mean,
+                                      ",", input$treatment_prior_variance, ")")
 
+      priors = list(
+        "Intercept" = intercept_prior_string,
+        "b" = treatment_prior_string
+      )
 
+      sims = list()
 
+      withProgress(message = "Simulating Platform-of-1 trials...", {
+
+        for (i in seq_len(input$n_sims)) {
+
+          sim = simulate(n_trts = input$n_trts,
+                         n_burn_cycles = input$n_burn_cycles,
+                         burn_obvs_per_period = input$burn_n_obvs_per_period,
+                         adaptive_obvs_per_period = input$adaptive_n_obvs_per_period,
+                         max_duration = input$maximum_duration,
+                         betas = betas,
+                         y_sigma = input$within_person_noise,
+                         priors = priors,
+                         n_chains = input$n_chains,
+                         n_iter = input$samples_per_chain,
+                         lag = 1, # RECHECK LATER
+                         stabilize = NULL,
+                         objective = input$objective,
+                         adapt_delta = input$adapt_delta,
+                         max_treedepth = input$max_treedepth)
+
+          sims[[i]] = sim
+
+          # Increment progress on the progress bar
+          incProgress(1 / input$n_sims)
+        }
+
+      })
+
+      return(sims)
+    }
   })
 
   # Create UI to specify the true treatment effects
   output$modelControls = renderUI({
 
-    model_parameter_panel = purrr::map(1:input[["n-trts"]], function(trt) {
+    model_parameter_panel = purrr::map(1:input$n_trts, function(trt) {
 
       fluidRow(column(12, numericInput(inputId = paste0("trt-effect-", trt),
                                label = paste0("Treatment ", trt, " Effect"),
@@ -61,19 +68,8 @@ server <- function(input, output, session) {
 
   })
 
-  output$hist = renderPlot({
-    hist(rnorm(input[["burn-in-lengths"]]))
+  output$test = renderPrint({
+    run_simulation()
   })
-
-  output$test = renderText({
-
-
-
-
-  })
-
-
-
-
 
 }

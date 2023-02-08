@@ -1,4 +1,5 @@
 source("tabs.R")
+source("helpers.R")
 
 ui = fluidPage(
   navbarPage("Platform-of-1 Planner",
