@@ -1,10 +1,5 @@
 simulationTab = sidebarLayout(
   sidebarPanel(
-    fluidRow(
-      column(12, actionButton(inputId = "simulate",
-                              label = h2("Simulate trials"),
-                              width = "100%"))
-    ),
     wellPanel(
       h3("Trial Simulation Parameters"),
       numericInput(inputId = "n_trts",
@@ -69,17 +64,34 @@ simulationTab = sidebarLayout(
                    value = 4),
       numericInput(inputId = "samples_per_chain",
                    label = "Samples per chains",
-                   value = 1000),
+                   value = 2000),
       numericInput(inputId = "adapt_delta",
                    label = "Adapt Delta",
-                   value = 0.999),
+                   value = 0.99),
       numericInput(inputId = "max_treedepth",
                    label = "Maximum tree depth",
                    value = 15)
+    ),
+    fluidRow(
+      column(12, actionButton(inputId = "simulate",
+                              label = h2("Simulate trials"),
+                              width = "100%"))
+    ),
+    fluidRow(
+      column(6, actionButton(inputId = "load",
+                             label = h2("Load Data"),
+                             width = "100%")),
+      column(6, actionButton(inputId = "save",
+                             label = h2("Save Data"),
+                             width = "100%"))
+    ),
+    fluidRow(
+      fileInput("upload", "Upload a file")
     )
   ),
   mainPanel(
-    plotOutput("hist"),
     verbatimTextOutput("test")
+    #plotOutput("allocation_probability_plot"),
+    #plotOutput("epp_plot")
   )
 )

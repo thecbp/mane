@@ -26,6 +26,8 @@ simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
 
   burnin_periods = (n_trts * n_burn_cycles)
 
+  n_cores = parallel::detectCores()
+
   # Generating posterior samples after data collected for everyone in period
   posteriors = brms::brm(formula = f,
                          data = trial_data,
@@ -34,12 +36,10 @@ simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
                          iter = n_iter,
                          prior = individual_priors,
                          control = control,
+                         cores = n_cores,
                          refresh = 0)
 
-
-  # Record all of the models in list, index is the period number
-  trial_posteriors = list()
-  trial_posteriors[[burnin_periods]] = posteriors
+  burnin_posteriors = posteriors
 
   # If stabilizing parameter not specified, use Thall & Walthen
   if (is.null(stabilize)) { c = burnin_periods / (2 * max_duration) }
@@ -64,9 +64,10 @@ simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
     obv = matrix(0, nrow = 1, ncol = n_trts)
     obv[1] = 1        # intercept
     obv[next_trt] = 1 # setting next treatment
-    X = obv[rep(1, adaptive_obvs_per_period), ]
+    X = obv[rep(1, adaptive_obvs_per_period), ] %>% matrix(nrow = adaptive_obvs_per_period)
     Y = (X %*% betas) + stats::rnorm(adaptive_obvs_per_period, 0, y_sigma)
     period_col = matrix(rep(per, adaptive_obvs_per_period), nrow = adaptive_obvs_per_period)
+
     new_data = cbind(X, Y, period_col)
 
     # Rename this new data to make sure that columns are aligned when combining
@@ -75,18 +76,7 @@ simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
     trial_data = rbind(trial_data, new_data)
 
     # Recalculate the posteriors using the updated dataset
-    # posteriors = brms::brm(formula = f,
-    #                        data = trial_data,
-    #                        family = gaussian(link = "identity"),
-    #                        chains = n_chains,
-    #                        iter = n_iter,
-    #                        prior = individual_priors,
-    #                        control = control,
-    #                        refresh = 0)
     posteriors = update(posteriors, newdata = trial_data)
-
-    # Record and update the posteriors used in the loop
-    trial_posteriors[[per]] = posteriors
 
     # If stabilize not initialized, use Thall & Walthen's optimal parameter
     if (is.null(stabilize)) { c = per / (2 * max_duration) }
@@ -98,13 +88,11 @@ simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
     # Record the new probabilities & period
     trial_probs = rbind(trial_probs, c(current_probs, per))
 
-  } # end of period loop
+  } # end of adaptive phase loop
 
   # Post simulation processing
   trial_probs = tibble::as_tibble(trial_probs)
   names(trial_probs) = c(paste0("X", 1:n_trts), "period")
-
-
 
   # Output of simulation
   out = list()
@@ -125,11 +113,39 @@ simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
     max_treedepth = max_treedepth
   )
   out[["data"]] = trial_data
-  out[["posteriors"]] = trial_posteriors
+  out[["burnin_posteriors"]] = burnin_posteriors
   out[["allocation_probs"]] = trial_probs
 
   out
 
+  # TO-DO: optimize this function by removing the posteriors variable, no need to store it
+  # create another intermediary that will get all of the posteriors based on the data alone
 
 
+}
+
+library(devtools)
+load_all()
+
+# simulations for manuscript
+for (i in 75:1000) {
+
+  null_sim = simulate(n_trts = 3,
+                       n_burn_cycles = 1,
+                       burn_obvs_per_period = 1,
+                       adaptive_obvs_per_period = 1,
+                       max_duration = 50,
+                       betas = c(130, 0, 0),
+                       y_sigma = 10,
+                       priors = list("Intercept" = "normal(0,100)", "b" = "normal(0,100)"),
+                       n_chains = 4,
+                       n_iter = 3000,
+                       lag = 1)
+
+  saveRDS(null_sim, file = paste0("null-sim-", i, ".rds"))
+
+  write(paste0("Finished writing iteration for null sim #", i), file = "null-sims-log.txt", append = TRUE, sep = "\n")
+
+  rm(null_sim)
+  gc()
 }

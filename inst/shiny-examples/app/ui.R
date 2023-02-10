@@ -1,6 +1,8 @@
 source("tabs.R")
 source("helpers.R")
 
+library(tidyverse)
+
 ui = fluidPage(
   navbarPage("Platform-of-1 Planner",
              tabPanel("Simulation", simulationTab),

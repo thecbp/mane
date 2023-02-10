@@ -1,6 +1,33 @@
 server <- function(input, output, session) {
 
-  run_simulation = reactive({
+  ##############
+
+  # DYNAMIC UI #
+
+  ##############
+
+  # Create UI to specify the true treatment effects
+  output$modelControls = renderUI({
+
+    model_parameter_panel = purrr::map(1:input$n_trts, function(trt) {
+
+      fluidRow(column(12, numericInput(inputId = paste0("trt-effect-", trt),
+                                       label = paste0("Treatment ", trt, " Effect"),
+                                       value = 0)))
+
+    })
+
+    model_parameter_panel
+
+  })
+
+  ############################
+
+  # SIMULATION FUNCTIONALITY #
+
+  ############################
+
+  simulations = reactive({
 
     if (input$simulate > 0) {
 
@@ -53,23 +80,79 @@ server <- function(input, output, session) {
     }
   })
 
-  # Create UI to specify the true treatment effects
-  output$modelControls = renderUI({
+  load_data = observeEvent("load", {
+    print("Load button pressed")
+  })
 
-    model_parameter_panel = purrr::map(1:input$n_trts, function(trt) {
+  save_data = observeEvent("save", {
 
-      fluidRow(column(12, numericInput(inputId = paste0("trt-effect-", trt),
-                               label = paste0("Treatment ", trt, " Effect"),
-                               value = 0)))
+    sims = simulations()
+    path = paste0(lubridate::now(),"-platform-of-1-simulations.rds")
 
-    })
+    saveRDS(sims, path)
 
-    model_parameter_panel
+    # TO-DO:
+    # add some feedback to tell user that the data was saved
+    # tell the user what folder the file is saved in
+    # tell the user what the name of the field
+
+
+  })
+
+  output$allocation_probability_plot = renderPlot({
+
+    sims = simulations()
+
+    if (!is.null(sims)) {
+      p = sims[[1]]$allocation_probs %>%
+        ggplot(aes(x = period, y = X1)) +
+        geom_point() +
+        geom_line()
+    } else {
+      p = NULL
+    }
+
+    p
+
+  })
+
+  output$allocation_probability_plot = renderPlot({
+
+    sims = simulations()
+
+    if (!is.null(sims)) {
+      p = sims[[1]]$allocation_probs %>%
+        ggplot(aes(x = period, y = X1)) +
+        geom_point() +
+        geom_line()
+    } else {
+      p = NULL
+    }
+
+    p
+
+  })
+
+  output$epp_plot = renderPlot({
+
+    sims = simulations()
+
+    if (!is.null(sims)) {
+      p = sims[[1]]$allocation_probs %>%
+        ggplot(aes(x = period, y = X1)) +
+        geom_point() +
+        geom_line()
+    } else {
+      p = NULL
+    }
+
+    p
 
   })
 
   output$test = renderPrint({
-    run_simulation()
+    sims = simulations()
+    sims
   })
 
 }
