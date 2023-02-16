@@ -1,46 +1,3 @@
-#' Simulate an individual bandit design for a multi-arm N-of-1 trial
-#'
-#' `IND()` simulates an individual bandit design for a multi-arm N-of-1 trial.
-#' This design comes in two phases: a burn-in phase where all the treatments are
-#' gievn in a random order, and an adaptive phase where the next treatment
-#' randomized is chosen via Thompson Sampling. The allocation probabilities are
-#' calculated via the posterior probability of each treatment being optimal.
-#'
-#' In the individual bandit design, the posterior treatment effects are
-#' updated after all individual have finished a treatment period. It is assumed
-#' that estimating the individual-level effects are of interest.
-#'
-#' @inheritParams FRN
-#' @param n_periods Positive integer indicating number of treatment periods
-#' @param p Positive integer indicating number of autocorrelation terms to use
-#'
-#' @return List containing the simulation parameters and resulting trial data that came from the parameters
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' # Generating data for simulation
-#' set.seed(1)
-#'
-#' # Covariance between betas, factorized into scalar and correlation components
-#' tau = 2 * diag(3)
-#' Omega = diag(3)
-#' Omega[1,2] = Omega[2,1] = 0.1
-#' Omega[1,3] = Omega[3,1] = 0.1
-#' Omega[3,2] = Omega[2,3] = 0.1
-#' Sigma = tau %*% Omega %*% tau
-#'
-#' # Generating individual treatment effects from unique distributions
-#' betas = array(0, dim = c(2, 3))
-#' betas[1,] = MASS::mvrnorm(n = 1, mu = c(3, -2, 4), Sigma = Sigma)
-#' betas[2,] = MASS::mvrnorm(n = 1, mu = c(1, 0, 3), Sigma = Sigma)
-#' betas = round(betas, 1)
-#' stanfile = 'stan/model_ind.stan'
-#'
-#' # ind = IND(n_subj = 2, n_periods = 6, n_obvs = 5, n_trts = 3, y_sigma = 2,
-#' #           stanfile = stanfile, betas = betas, chains = 1, warmup = 1000,
-#' #           iter = 3000)
-#' }
 IND = function(n_subj, n_trts, n_periods, n_obvs,
                betas, y_sigma, chains, iter, lag,
                stabilize = NULL,
@@ -215,3 +172,92 @@ IND = function(n_subj, n_trts, n_periods, n_obvs,
 
 }
 
+generate_FRN_data = function(n_subj,
+                             n_trts,
+                             n_obvs,
+                             betas,
+                             y_sigma) {
+
+  # Matrix of single person getting all of the treatments for n_obvs each
+  trt = diag(n_trts)
+  trt[, 1] = 1
+  colnames(trt) = paste0("X", 1:n_trts)
+  trt = trt[rep(seq_len(nrow(trt)), each = n_obvs),] # single design matrix
+  X = trt[rep(seq_len(nrow(trt)), each = n_subj),] # matrices for each person
+
+  # Calculate outcome with given betas (column is person, row is outcome for first obvs)
+  # Also adding within-subject noise
+  Y = ((trt %*% t(betas)) %>% c()) + stats::rnorm(nrow(X), 0, y_sigma)
+
+  id = rep(1:n_subj, times = n_obvs * n_trts)
+
+  output = cbind(id = id, X, Y = Y) %>% tibble::as_tibble()
+  output = output %>%
+    dplyr::mutate(
+      period = rep(1:n_trts, each = n_subj * n_obvs)
+    ) %>%
+    dplyr::group_by(id) %>%
+    dplyr::mutate(
+      time = 1:(n_trts * n_obvs) # Mark the time of observation
+    ) %>%
+    ungroup()
+
+  output
+
+}
+
+allocate_probabilities = function(posterior, c, objective = "max") {
+
+  # Set the correct function to maximize on
+  if (objective == "max") { m = max }
+  else { m = min }
+
+  output = posterior %>%
+    dplyr::transmute(
+      id = id,
+      probs = purrr::map(model, function(mod) {
+
+        betas = as.data.frame(mod) %>% dplyr::select(tidyselect::contains("b_"))
+        n_trts = ncol(betas)
+
+        # Design matrix representing outcome based on treatments
+        trt = diag(n_trts)
+        trt[, 1] = 1
+        colnames(trt) = paste0("X", 1:n_trts)
+
+        # Find which arm produced best treatment effects
+        posterior_outcomes = trt %*% t(betas)
+        find_optimal = function(x) {which(x == m(x))}
+        optimal_arms = apply(posterior_outcomes, 2, find_optimal)
+
+        probs = c(table(optimal_arms) / nrow(betas))
+
+        # Stabilize the probabilities
+        stab_probs = probs^c / sum(probs^c)
+
+        prob_df = stab_probs %>%
+          tibble::as_tibble() %>%
+          dplyr::mutate(
+            trt = names(stab_probs)
+          ) %>%
+          tidyr::pivot_wider(names_from = trt, values_from = value)
+
+        prob_df
+      })
+    ) %>%
+    tidyr::unnest(probs)
+
+  # Adjust column names
+  n_trts = ncol(output) - 1
+  colnames(output) = c("id", paste0("X", 1:n_trts))
+
+  # Replace NA with 0
+  replace_list = list()
+  for (col in paste0("X", 1:n_trts)) {
+    replace_list[[col]] = 0
+  }
+
+  output = output %>% replace_na(replace_list)
+
+  output
+}
