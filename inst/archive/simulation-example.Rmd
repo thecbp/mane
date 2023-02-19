@@ -1,0 +1,42 @@
+---
+title: "simulation-example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{simulation-example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(mane)
+
+# simulations for manuscript
+for (i in 783:1000) {
+
+  large_sim = simulate(n_trts = 3,
+                       n_burn_cycles = 1,
+                       burn_obvs_per_period = 1,
+                       adaptive_obvs_per_period = 1,
+                       max_duration = 50,
+                       betas = c(130, -10, 0),
+                       y_sigma = 10,
+                       priors = list("Intercept" = "normal(0,100)", "b" = "normal(0,100)"),
+                       n_chains = 4,
+                       n_iter = 3000,
+                       lag = 1)
+
+  saveRDS(large_sim, file = paste0("large-sim-", i, ".rds"))
+
+  write(paste0("Finished writing iteration for large sim #", i), file = "large-sims-log.txt", append = TRUE, sep = "\n")
+
+  rm(large_sim)
+  gc()
+}
+```

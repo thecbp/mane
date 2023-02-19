@@ -1,0 +1,54 @@
+---
+title: "Platform-of-1 Example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{AGG-example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, eval = F}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Simulation Population
+
+A group where treatment A is the optimal treatment for them. B also works, but it is not as effective as A.
+
+$$
+Y_{ij} = 120 + 5 X_1 + 10 X_2 + \epsilon_i
+$$
+
+A group where treatment B is the optimal treatment for them. The other two treatments have the same effect. 
+
+$$
+Y_{ij} = 127 - 7 X_1 + 0 X_2 + \epsilon_i
+$$
+
+A group where treatment C is the optimal treatment for them. Treatment B is very close to the effect for C.
+
+$$
+Y_{ij} = 130 - 8 X_1 - 10 X_2 + \epsilon_i
+$$
+
+A group where no treatment is optimal for them:
+
+$$
+Y_{ij} = 130 + 0 X_1 + 0 X_2 + \epsilon_i
+$$
+
+We will assume that the treatments have weak correlation with each other since we expect all of them to be beneficial. We will also assume the same correlation structure for each group.
+
+$$
+\Sigma_\beta = 
+\begin{bmatrix}
+1 & 0.1 & 0.1 \\
+0.1 & 1 & 0.1 \\
+0.1 & 0.1 & 1 \\
+\end{bmatrix}
+$$
+
+For different treatments, we will assume the same scalar on the correlations. For the group with no benefit, we'll make the scalar small so that the sampled treatment effects do not differ greatly from 0.

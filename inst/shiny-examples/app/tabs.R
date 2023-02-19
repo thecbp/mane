@@ -73,20 +73,15 @@ simulationTab = sidebarLayout(
                    value = 15)
     ),
     fluidRow(
-      column(12, actionButton(inputId = "simulate",
-                              label = h2("Simulate trials"),
-                              width = "100%"))
-    ),
-    fluidRow(
-      column(6, actionButton(inputId = "load",
-                             label = h2("Load Data"),
+      column(4, actionButton(inputId = "simulate",
+                             label = "Simulate",
                              width = "100%")),
-      column(6, actionButton(inputId = "save",
-                             label = h2("Save Data"),
-                             width = "100%"))
-    ),
-    fluidRow(
-      fileInput("upload", "Upload a file")
+      column(4, actionButton(inputId = "save",
+                             label = "Save Data",
+                             width = "100%")),
+      column(4, actionButton(inputId = "load",
+                             label = "Load Data",
+                             width = "100%")()
     )
   ),
   mainPanel(
