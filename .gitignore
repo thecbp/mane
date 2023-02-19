@@ -2,6 +2,7 @@
 .Rhistory
 .Rdata
 .httr-oauth
+.Rapp.history
 .DS_Store
 inst/doc
 vignettes/ES
