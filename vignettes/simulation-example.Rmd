@@ -1,0 +1,294 @@
+---
+title: "simulation-example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{simulation-example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r}
+generate_trial_posteriors = function(sim, iter) {
+  
+  rep_posteriors = list()
+  
+  burnin_cutoff = sim[["trial_params"]][["n_trts"]] * 
+      sim[["trial_params"]][["n_burn_cycles"]] * 
+      sim[["trial_params"]][["burn_obvs_per_period"]]
+    
+    burnin_model = sim[["burnin_posteriors"]]
+    
+    posterior = as.data.frame(burnin_model)
+    posterior$period = burnin_cutoff
+    posterior$sim = i
+    
+    rep_posteriors[[burnin_cutoff]] = posterior
+    
+    for (p in (burnin_cutoff+1):sim[["trial_params"]][["max_duration"]]) {
+      current_data = sim[["data"]] %>% filter(period <= p)
+      current_posteriors = update(burnin_model, newdata = current_data)
+      posterior = as.data.frame(current_posteriors)
+      posterior$period = p
+      posterior$sim = iter
+      rep_posteriors[[p]] = posterior
+    }
+    
+  rep_posteriors
+}
+```
+
+
+```{r setup}
+
+
+# code for generating the simulations for null, weak, moderate and large effect sizes
+# simulations for manuscript
+for (i in 108:1000) {
+  
+  # null_sim
+  # weak_sim
+  # mod_sim
+  # large_sim (done incorrectly?)
+  # null_cor_sim (0.25)
+
+  null_cor_sim = simulate_corr(n_trts = 3,
+                               n_burn_cycles = 1,
+                               burn_obvs_per_period = 1,
+                               adaptive_obvs_per_period = 1,
+                               max_duration = 50,
+                               betas = c(130, -10, 0),
+                               y_sigma = 10,
+                               phi = 0.25, 
+                               priors = list("Intercept" = "normal(0,100)", 
+                                             "b" = "normal(0,100)"),
+                               n_chains = 4,
+                               n_iter = 3000,
+                               lag = 1)
+
+  # Save the actual simulation (for EPP)
+  prefix = "null-cor25-sim-"
+  saveRDS(null_cor_sim, file = paste0(prefix, i, ".rds"))
+  
+  # Save the posterior samples throughout trial
+  posteriorsamps = generate_trial_posteriors(null_cor_sim, i)
+  saveRDS(posteriorsamps, file = paste0(prefix, "posteriors-", i, ".rds"))
+  
+  
+
+  write(paste0(lubridate::now(),": Finished writing iteration for correlated (0.25) null sim #", i), 
+        file = "sims-log.txt", append = TRUE, sep = "\n")
+
+  rm(null_cor_sim)
+  rm(posteriorsamps)
+  gc()
+}
+```
+
+
+```{r}
+# code for analyzing the posterior samples for null simulations for type-I error analysis
+nullsims = readRDS("../null-sims.rds")
+
+
+
+nullsim_posteriors = generate_trial_posteriors(nullsims)
+# writeRDS(nullsim_posteriors, "nullsim_posteriors.rds")
+# nullsim_posteriors = readRDS("nullsim_posteriors.rds")
+```
+
+```{r}
+# First iteration: explicitly choosing -10 as the cutoff for the treatment effect
+typeI_errors = expand.grid(
+  samplesize = 3:50,
+  gamma = seq(0.90, 0.99, 0.01)
+) %>% as_tibble()
+
+t1e_storage = list()
+
+for (i in 1:nrow(typeI_errors)) { 
+
+   X2_t1e = nullsim_posteriors %>% 
+        map(function(sample) { sample %>% filter(period == typeI_errors$samplesize[i]) }) %>% # get posterior sample at period == n
+        map(function(data) { 
+          optimal_sample = data %>% pull(b_X2)
+          mean(optimal_sample < -10) > typeI_errors$gamma[i] # Pr(beta2 < cutoff)
+        }) %>% 
+        unlist() %>% 
+        mean()
+   
+   X3_t1e = nullsim_posteriors %>% 
+        map(function(sample) { sample %>% filter(period == typeI_errors$samplesize[i]) }) %>% # get posterior sample at period == n
+        map(function(data) { 
+          optimal_sample = data %>% pull(b_X3)
+          mean(optimal_sample < -10) > typeI_errors$gamma[i] # Pr(beta2 < cutoff)
+        }) %>% 
+        unlist() %>% 
+        mean()
+   
+   t1e_storage[[i]] = c(X2_t1e, X3_t1e)
+   
+   print(paste0("Ending iteration ", i, " at ", lubridate::now()))
+  
+}
+```
+
+```{r}
+# Second iteration: using a range of cutoffs as (produces a heat/contour map)
+
+# note to self, need to cut down on the parameter space here 
+# from 02/21 experiment: each iteration takes about 12 minutes
+# from 02/26: this code would take FOREVER to run. Don't run it locally
+typeI_errors = expand.grid(
+  samplesize = 3:50,
+  delta = seq(125, 140, 1),
+  gamma = seq(0.90, 0.99, 0.01)
+) %>% as_tibble()
+
+
+for (i in 1:nrow(typeI_errors)) { 
+
+   X2_t1e = nullsim_posteriors %>% 
+        map(function(sample) { sample %>% filter(period == typeI_errors$samplesize[i]) }) %>% # get posterior sample at period == n
+        map(function(data) { 
+          optimal_sample = data %>% pull(b_X2)
+          mean(optimal_sample < typeI_errors$delta[i]) > typeI_errors$gamma[i] # Pr(beta2 < cutoff)
+        }) %>% 
+        unlist() %>% 
+        mean()
+   
+   X3_t1e = nullsim_posteriors %>% 
+        map(function(sample) { sample %>% filter(period == typeI_errors$samplesize[i]) }) %>% # get posterior sample at period == n
+        map(function(data) { 
+          optimal_sample = data %>% pull(b_X3)
+          mean(optimal_sample < typeI_errors$delta[i]) > typeI_errors$gamma[i] # Pr(beta2 < cutoff)
+        }) %>% 
+        unlist() %>% 
+        mean()
+   
+   print(paste0("Ending iteration ", i, " at ", lubridate::now()))
+  
+}
+ 
+```
+
+```{r}
+# code for analyzing power 
+weaksims = readRDS("../weak-sims.rds")
+modsims = readRDS("../mod-sims.rds")
+largesims = readRDS("../null-sims.rds")
+weaksim_posteriors = generate_trial_posteriors(weaksims)
+modsim_posteriors = generate_trial_posteriors(modsims)
+largesim_posteriors = generate_trial_posteriors(largesims)
+
+
+# writeRDS(nullsim_posteriors, "nullsim_posteriors.rds")
+# nullsim_posteriors = readRDS("nullsim_posteriors.rds")
+```
+
+```{r}
+library(devtools)
+load_all()
+library(tidyverse)
+library(wesanderson)
+# EPP Figure code
+
+weaksims = readRDS("../weak-sims.rds")
+modsims = readRDS("../mod-sims.rds")
+largesims = readRDS("../large-sims.rds")
+
+# Gather each of the actual allocations in a single tibble
+weakdf = list()
+moddf = list()
+largedf = list() 
+for (i in 1:1000) {
+  # weakdf[[i]] = weaksims[[i]]$data
+  #moddf[[i]] = modsims[[i]]$data
+  largedf[[i]] = largesims[[i]]$data
+}
+
+# weak_data = bind_rows(weakdf) %>% 
+#   mutate(ES = "Weak (0.2)",
+#          sim = rep(1:1000, each = 50))
+# saveRDS(weak_data, "weak-ES-allocations.rds")
+mod_data = bind_rows(moddf) %>% 
+  mutate(ES = "Moderate (0.5)",
+         sim = rep(1:1000, each = 50))
+saveRDS(mod_data, "mod-ES-allocations.rds")
+large_data = bind_rows(largedf) %>% 
+  mutate(ES = "Strong (1)",
+         sim = rep(1:1000, each = 50))
+saveRDS(large_data, "large-ES-allocations.rds")
+
+
+weak_data = readRDS("weak-ES-allocations.rds")
+mod_data = readRDS("mod-ES-allocations.rds")
+large_data = readRDS("large-ES-allocations.rds")
+full_data = bind_rows(weak_data, mod_data, large_data)
+
+EPP_data = full_data %>% 
+  select(X2, period, ES, sim) %>% 
+  group_by(ES, period) %>% 
+  summarize(
+    EPP = mean(X2)
+  )
+
+pal = wes_palette("Darjeeling1", 3, type = "discrete")
+
+EPP_data %>% 
+  filter(period > 3) %>% # adaptive-phase only
+  ggplot() + 
+  geom_point(aes(x = period, y = EPP, color = ES), alpha = 0.3) + 
+  geom_smooth(aes(x = period, y = EPP, color = ES), method = "loess") +
+  geom_hline(aes(yintercept = 1/3), color = "black") + 
+  theme_minimal() +
+  labs(
+    x = "Period",
+    y = "EPP"
+  ) + 
+  theme(legend.position = "bottom") +
+  scale_color_manual(values = pal)
+  
+```
+
+```{r}
+# 
+typeI_errors = expand.grid(
+  samplesize = 3:50,
+  gamma = seq(0.90, 0.99, 0.01)
+) %>% as_tibble()
+
+t1e_storage = list()
+
+for (i in 1:nrow(typeI_errors)) { 
+
+   X2_t1e = nullsim_posteriors %>% 
+        map(function(sample) { sample %>% filter(period == typeI_errors$samplesize[i]) }) %>% # get posterior sample at period == n
+        map(function(data) { 
+          optimal_sample = data %>% pull(b_X2)
+          mean(optimal_sample < -10) > typeI_errors$gamma[i] # Pr(beta2 < cutoff)
+        }) %>% 
+        unlist() %>% 
+        mean()
+   
+   X3_t1e = nullsim_posteriors %>% 
+        map(function(sample) { sample %>% filter(period == typeI_errors$samplesize[i]) }) %>% # get posterior sample at period == n
+        map(function(data) { 
+          optimal_sample = data %>% pull(b_X3)
+          mean(optimal_sample < -10) > typeI_errors$gamma[i] # Pr(beta2 < cutoff)
+        }) %>% 
+        unlist() %>% 
+        mean()
+   
+   t1e_storage[[i]] = c(X2_t1e, X3_t1e)
+   
+   print(paste0("Ending iteration ", i, " at ", lubridate::now()))
+  
+}
+```
