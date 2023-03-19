@@ -1,14 +1,19 @@
 simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
                     adaptive_obvs_per_period, max_duration,
-                    betas, y_sigma, priors, n_chains, n_iter, lag,
+                    betas, y_sigma, priors, n_chains, n_iter, phi,
                     stabilize = NULL,
                     objective = "Maximize",
                     adapt_delta = 0.999,
-                    max_treedepth = 15,
-                    seed = 1) {
+                    max_treedepth = 15) {
+
+
 
   # Burn-in phase
-  trial_data = burnin(n_trts, n_burn_cycles, burn_obvs_per_period, betas, y_sigma)
+  if (phi == 0) {
+    trial_data = burnin(n_trts, n_burn_cycles, burn_obvs_per_period, betas, y_sigma)
+  } else {
+    trial_data = burnin_corr(n_trts, n_burn_cycles, burn_obvs_per_period, betas, y_sigma, phi = phi)
+  }
 
   # Build the formula for the model (X1 is reference treatment)
   f = paste0("Y~", paste0("X", 2:n_trts, collapse = "+"))
@@ -65,7 +70,15 @@ simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
     obv[1] = 1        # intercept
     obv[next_trt] = 1 # setting next treatment
     X = obv[rep(1, adaptive_obvs_per_period), ] %>% matrix(nrow = adaptive_obvs_per_period)
-    Y = (X %*% betas) + stats::rnorm(adaptive_obvs_per_period, 0, y_sigma)
+
+    # Generate outcome based on if we need serial correlation or not
+    if (phi == 0) {
+      Y = (X %*% betas) + stats::rnorm(adaptive_obvs_per_period, 0, y_sigma)
+    } else {
+      Y_ar = arima.sim(model = list(ar = phi), sd = y_sigma, n = adaptive_obvs_per_period)
+      Y = Y_ar + (X %*% betas)
+    }
+
     period_col = matrix(rep(per, adaptive_obvs_per_period), nrow = adaptive_obvs_per_period)
 
     new_data = cbind(X, Y, period_col)
@@ -105,6 +118,7 @@ simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
     adaptive_obvs_per_period = adaptive_obvs_per_period,
     max_duration = max_duration,
     betas = betas,
+    phi = phi,
     y_sigma = y_sigma,
     priors = priors
   )
