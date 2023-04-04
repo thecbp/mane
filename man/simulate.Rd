@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulate.R
 \name{simulate}
 \alias{simulate}
-\title{Title}
+\title{Function for simulating a single Platform-of-1 design}
 \usage{
 simulate(
   n_trts,
@@ -23,8 +23,59 @@ simulate(
 )
 }
 \arguments{
-\item{max_treedepth}{}
+\item{n_trts}{(integer): The number of treatments. The value of \code{n_trts} should be a positive integer.}
+
+\item{n_burn_cycles}{(integer): The number of burn-in cycles. This parameter defines how many times the dataset will be replicated for the burn-in phase. The value of \code{n_burn_cycles} should be a positive integer.}
+
+\item{burn_obvs_per_period}{(integer): The number of observations per period for each treatment during the burn-in period. The value of \code{burn_obvs_per_period} should be a positive integer.}
+
+\item{adaptive_obvs_per_period}{(integer): The number of observations per period for each treatment during the adaptive phase of the trial. The value of \code{adaptive_obvs_per_period} should be a positive integer.}
+
+\item{max_duration}{(integer): The maximum duration of the trial, expressed as the number of periods. The value of \code{max_duration} should be a positive integer.}
+
+\item{betas}{(numeric vector): A vector of regression coefficients representing the effects of the treatments. The length of this vector should be equal to \code{n_trts}.}
+
+\item{y_sigma}{(numeric): The standard deviation of the error term in the outcome variable. This parameter represents the noise in the outcome variable and should be a positive number.}
+
+\item{priors}{(list): A list of priors to be used in the model. See the example to see how to format this list.}
+
+\item{n_chains}{(integer): The number of chains to use for MCMC. The value of n_chains should be a positive integer.}
+
+\item{n_iter}{(integer): The number of iterations for MCMC. The value of n_iter should be a positive integer.}
+
+\item{phi}{(numeric): The autoregressive (AR) coefficient for the outcome variable. If phi is 0, there is no serial correlation in the outcome variable. Otherwise, the outcome variable is generated with an AR(1) process using the specified phi value.}
+
+\item{stabilize}{(numeric, optional): The stabilizing parameter for the trial. If not provided, the function uses Thall & Walthen's optimal parameter. The value of stabilize should be a positive number or NULL.}
+
+\item{objective}{(string): The objective of the trial, either "Maximize" or "Minimize". Determines the goal of the Thompson Sampling algorithm.}
+
+\item{adapt_delta}{(numeric): The adaptation parameter for the Hamiltonian Monte Carlo algorithm used in the brms package. The value of \code{adapt_delta} should be between 0 and 1.}
+
+\item{max_treedepth}{(integer): The maximum tree depth for the Hamiltonian Monte Carlo algorithm used in the brms package. The value of \code{max_treedepth} should be a positive integer.}
+}
+\value{
+A list containing the following elements:
+\itemize{
+\item \code{trial_params}: A list of the input trial parameters.
+\item \code{stan_params}: A list of the input Stan parameters (used in the brms package).
+\item \code{data}: A data frame containing the simulated trial data.
+\item \code{burnin_posteriors}: A brmsfit
+}
 }
 \description{
-Title
+Function for simulating a single Platform-of-1 design
+}
+\examples{
+# Simulate a single Platform-of-1 trial
+sims = simulate(n_trts = 3,
+                n_burn_cycles = 1,
+                burn_obvs_per_period = 7,
+                adaptive_obvs_per_period = 7,
+                max_duration = 12,
+                betas = c(130, -10, -5),
+                y_sigma = 10,
+                priors = list("Intercept" = "normal(0,100)",
+                              "b" = "normal(0,100)"),
+                phi = 0,
+                objective = "Minimize")
 }

@@ -2,10 +2,10 @@
 % Please edit documentation in R/runPlanner.R
 \name{runPlanner}
 \alias{runPlanner}
-\title{Title}
+\title{Shiny dashboard for simulating the Platform-of-1 design}
 \usage{
 runPlanner()
 }
 \description{
-Title
+Shiny dashboard for simulating the Platform-of-1 design
 }

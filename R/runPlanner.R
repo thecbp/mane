@@ -1,9 +1,6 @@
-#' Title
+#' Shiny dashboard for simulating the Platform-of-1 design
 #'
-#' @return
 #' @export
-#'
-#' @examples
 runPlanner = function() {
   appDir = system.file("shiny-examples", "app", package = "mane")
   if (appDir == "") {
