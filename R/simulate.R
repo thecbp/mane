@@ -1,3 +1,25 @@
+#' Title
+#'
+#' @param n_trts
+#' @param n_burn_cycles
+#' @param burn_obvs_per_period
+#' @param adaptive_obvs_per_period
+#' @param max_duration
+#' @param betas
+#' @param y_sigma
+#' @param priors
+#' @param n_chains
+#' @param n_iter
+#' @param phi
+#' @param stabilize
+#' @param objective
+#' @param adapt_delta
+#' @param max_treedepth
+#'
+#' @return
+#' @export
+#'
+#' @examples
 simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
                     adaptive_obvs_per_period, max_duration,
                     betas, y_sigma, priors, n_chains, n_iter, phi,
