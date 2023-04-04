@@ -19,7 +19,7 @@ simulationTab = sidebarLayout(
                    value = 5),
       numericInput(inputId = "n_sims",
                    label = "Number of Simulations",
-                   value = 1),
+                   value = 5),
       selectInput(inputId = "objective",
                   label = "Maximize or minimize reward?",
                   choices = c("Maximize", "Minimize"))
@@ -29,7 +29,10 @@ simulationTab = sidebarLayout(
       uiOutput("modelControls"),
       numericInput(inputId = "within_person_noise",
                    label = "Within-person noise",
-                   value = 10)
+                   value = 10),
+      sliderInput(inputId = "serial_correlation",
+                   label = "Degree of serial correlation",
+                   min = 0, max = 0.99, value = 0, step = 0.01)
     ),
     wellPanel(
       h3("Prior Parameters"),
@@ -73,15 +76,12 @@ simulationTab = sidebarLayout(
                    value = 15)
     ),
     fluidRow(
-      column(4, actionButton(inputId = "simulate",
+      column(6, actionButton(inputId = "simulate",
                              label = "Simulate",
                              width = "100%")),
-      column(4, actionButton(inputId = "save",
+      column(6, actionButton(inputId = "save",
                              label = "Save Data",
-                             width = "100%")),
-      column(4, actionButton(inputId = "load",
-                             label = "Load Data",
-                             width = "100%")()
+                             width = "100%"))
     )
   ),
   mainPanel(
@@ -90,3 +90,4 @@ simulationTab = sidebarLayout(
     #plotOutput("epp_plot")
   )
 )
+

@@ -1,11 +1,10 @@
-source("tabs.R")
+source("ui-code.R")
 
 library(tidyverse)
 
 ui = fluidPage(
   navbarPage("Platform-of-1 Planner",
              tabPanel("Simulation", simulationTab),
-             tabPanel("Power"),
-             tabPanel("Help")
+             tabPanel("How To Use")
   )
 )
