@@ -48,11 +48,7 @@ simulate = function(n_trts, n_burn_cycles, burn_obvs_per_period,
 
 
   # Burn-in phase
-  if (phi == 0) {
-    trial_data = burnin(n_trts, n_burn_cycles, burn_obvs_per_period, betas, y_sigma)
-  } else {
-    trial_data = burnin_corr(n_trts, n_burn_cycles, burn_obvs_per_period, betas, y_sigma, phi = phi)
-  }
+  trial_data = burnin(n_trts, n_burn_cycles, burn_obvs_per_period, betas, y_sigma, phi = phi)
 
   # Build the formula for the model (X1 is reference treatment)
   f = paste0("Y~", paste0("X", 2:n_trts, collapse = "+"))

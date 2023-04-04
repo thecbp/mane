@@ -9,7 +9,6 @@
 #'
 #' @return A tibble containing treatment indicators for all treatments and an outcome
 #' @export
-#'
 burnin = function(n_trts, n_burn_cycles, burn_obvs_per_period, betas, y_sigma, phi) {
 
   # Matrix of single person getting all of the treatments for n_obvs each
@@ -28,8 +27,8 @@ burnin = function(n_trts, n_burn_cycles, burn_obvs_per_period, betas, y_sigma, p
     Y = Y_ar + X %*% betas
   }
 
-  output = cbind(X, Y = Y) %>% tibble::as_tibble()
-  output = output %>%
+  output = cbind(X, Y = Y) %>%
+    tibble::as_tibble() %>%
     dplyr::mutate(
       period = rep(1:n_trts, times = n_burn_cycles * burn_obvs_per_period)
     )
