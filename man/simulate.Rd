@@ -59,7 +59,7 @@ A list containing the following elements:
 \item \code{trial_params}: A list of the input trial parameters.
 \item \code{stan_params}: A list of the input Stan parameters (used in the brms package).
 \item \code{data}: A data frame containing the simulated trial data.
-\item \code{burnin_posteriors}: A brmsfit
+\item \code{burnin_posteriors}: A brmsfit that contains the posteriors after the burn-in phase
 }
 }
 \description{

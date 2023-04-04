@@ -20,7 +20,7 @@
 #' - \code{trial_params}: A list of the input trial parameters.
 #' - \code{stan_params}: A list of the input Stan parameters (used in the brms package).
 #' - \code{data}: A data frame containing the simulated trial data.
-#' - \code{burnin_posteriors}: A brmsfit
+#' - \code{burnin_posteriors}: A brmsfit that contains the posteriors after the burn-in phase
 #'
 #' @export
 #'
