@@ -56,19 +56,4 @@ for (i in 1:n_sims) {
   gc()
 }
 
-saveRDS(ppp, "practice.rds")
 ```
-
-```{r}
-allocs = lapply(ppp, function(s) {s$allocation_probs}) %>%
-  bind_rows() %>% 
-  pivot_longer(cols = starts_with("X"),
-               names_to = "treatment",
-               values_to = "probability"
-  ) %>% 
-  group_by(treatment) %>% 
-  summarize(
-    prob = mean(probability)
-  )
-```
-

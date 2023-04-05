@@ -1,12 +1,15 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# mane
+# mane (Multi-arm N-of-1 Experiments)
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of mane is to …
+The goal of `mane` is to provide an interface to simulate Platform-of-1
+trials. It is a package that accompanies the manuscript, “Platform-of-1:
+A Bayesian Adaptive N-of-1 Design For Personalizing Individual Treatment
+Among Multiple Candidates”.
 
 ## Installation
 
@@ -20,9 +23,24 @@ devtools::install_github("thecbp/mane")
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+We have implemented a Shiny dashboard that a user can use to plan out a
+Platform-of-1 design through the `runPlanner()` function:
 
 ``` r
 library(mane)
-## basic example code
+# runPlanner()
+```
+
+The Shiny dashboard provides an interface to simulate Platform-of-1
+trials and lets a user examine the resulting operating characteristics
+(power, family-wise error rate) with graphs.
+
+Alternatively, a user may also consult the `simulation-example`
+vignette. This is the recommended approach if a user plans to simulate
+*many* trials (more than 300). RStudio has a chance to crash during the
+course of the simulations, so there is some extra code to help bookmark
+progress and continue if there is a crash.
+
+``` r
+# vignette("simulation-example")
 ```
