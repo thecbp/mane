@@ -14,7 +14,7 @@ server <- function(input, output, session) {
       if (trt == 1) {
         fluidRow(column(12, numericInput(inputId = paste0("trt-effect-", trt),
                                          label = paste0("Treatment ", trt, " Effect (Intercept)"),
-                                         value = 0)))
+                                         value = 100)))
       } else {
         fluidRow(column(12, numericInput(inputId = paste0("trt-effect-", trt),
                                          label = paste0("Treatment ", trt, " Effect"),
